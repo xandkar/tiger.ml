@@ -6,7 +6,7 @@ Project Plan
 
 | status | id         | title                                    | pages | estimate | actual | start      | finish     |
 |--------|------------|------------------------------------------|-------|----------|--------|------------|------------|
-| [ ]    | 0          | Modern Compiler Implementation in ML     | 512   | 28       | --     | xxxx-xx-xx | xxxx-xx-xx |
+| [ ]    | 0          | Modern Compiler Implementation in ML     | 512   | 28-84    | --     | xxxx-xx-xx | xxxx-xx-xx |
 | ====== | ========== | ======================================== | ===== | ======== | ====== | ========== | ========== |
 | [ ]    | 1          | - Fundamentals of Compilation            | 264   | 14       | --     | ---------- | ---------- |
 | [ ]    | 1.01       | -- Introduction                          | 011   | 01       | --     | ---------- | ---------- |
