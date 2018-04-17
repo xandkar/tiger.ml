@@ -1,4 +1,5 @@
 module List = ListLabels
+module String = StringLabels
 
 module Spl : sig
   type id = string
@@ -19,9 +20,32 @@ module Spl : sig
     | OpExp of exp * binop * exp
     | EseqExp of stm * exp
 
+  exception Unknown_identifier of string
+
   val maxargs : stm -> int option
   (** Option because a program may not have any print statements at all. *)
+
+  val interp : stm -> unit
+  (** raises Unknown_identifier, if such is encountered *)
 end = struct
+  module Table : sig
+    type ('k, 'v) t
+    val empty : ('k, 'v) t
+    val set : ('k, 'v) t -> k:'k -> v:'v -> ('k, 'v) t
+    val get : ('k, 'v) t -> k:'k -> 'v option
+  end = struct
+    type ('k, 'v) t = ('k * 'v) list
+    let empty = []
+    let set t ~k ~v = (k, v) :: t
+    let get t ~k =
+      let rec search = function
+        | [] -> None
+        | (key, v) :: _ when key = k -> Some v
+        | (_, _) :: rest -> search rest
+      in
+      search t
+  end
+
   type id = string
 
   type binop =
@@ -39,6 +63,56 @@ end = struct
     | NumExp of int
     | OpExp of exp * binop * exp
     | EseqExp of stm * exp
+
+  exception Unknown_identifier of string
+
+  let interp_binop op v1 v2 =
+    match op with
+    | Plus  -> v1 + v2
+    | Minus -> v1 - v2
+    | Times -> v1 * v2
+    | Div   -> v1 / v2
+
+  let rec interp_stm tbl_0 stm =
+    begin match stm with
+    | PrintStm exps ->
+        let (tbl_1, val_ints) =
+          List.fold_right exps
+            ~init:(tbl_0, [])
+            ~f:(fun e (tbl0, vs) ->
+                let (tbl1, v) = interp_exp tbl0 e in
+                (tbl1, v :: vs)
+            )
+        in
+        let val_strings = List.map val_ints ~f:string_of_int in
+        print_endline (String.concat val_strings ~sep:" ");
+        tbl_1
+    | AssignStm (id, e) ->
+        let (tbl_1, v) = interp_exp tbl_0 e in
+        Table.set tbl_1 ~k:id ~v
+    | CompoundStm (s1, s2) ->
+        let tbl_1 = interp_stm tbl_0 s1 in
+        interp_stm tbl_1 s2
+    end
+  and interp_exp tbl_0 exp =
+    ( match exp with
+    | IdExp id ->
+        ( match Table.get tbl_0 ~k:id with
+        | Some v -> (tbl_0, v)
+        | None   -> raise (Unknown_identifier id)
+        )
+    | NumExp n -> (tbl_0, n)
+    | OpExp (e1, op, e2) ->
+        let (tbl_1, v1) = interp_exp tbl_0 e1 in
+        let (tbl_2, v2) = interp_exp tbl_1 e2 in
+        (tbl_2, interp_binop op v1 v2)
+    | EseqExp (s, e) ->
+        let tbl_1 = interp_stm tbl_0 s in
+        interp_exp tbl_1 e
+    )
+
+  let interp stm : unit =
+    ignore (interp_stm (Table.empty) stm)
 
     (* 01.p.1: Write ML function (maxargs : stm -> int) that tells the
      * maximum number of arguments of any print statement within any
@@ -121,4 +195,7 @@ let () =
   Printf.printf "maxargs : spl_prog_orig -> %s\n"
     (string_of_maxargs (Spl.maxargs spl_prog_orig));
   Printf.printf "maxargs : spl_prog_noprint -> %s\n"
-    (string_of_maxargs (Spl.maxargs spl_prog_noprint))
+    (string_of_maxargs (Spl.maxargs spl_prog_noprint));
+  print_endline "BEGIN Spl.interp spl_prog_orig";
+  Spl.interp spl_prog_orig;
+  print_endline "END Spl.interp spl_prog_orig"
