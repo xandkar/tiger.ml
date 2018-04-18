@@ -12,11 +12,7 @@ module type TREE = sig
 
   val member : ('k, 'v) t -> k:'k -> bool
 
-  val print
-    : ('k, 'v) t
-    -> k_to_string:('k -> string)
-    -> indent_level:string
-    -> unit
+  val to_dot : ('k, 'v) t -> k_to_string:('k -> string) -> string
 end
 
 module BinaryTree : TREE = struct
@@ -47,22 +43,27 @@ module BinaryTree : TREE = struct
     | Node (k', _, _, r) when k > k' -> member r ~k
     | Node _ -> true
 
-  let rec fold t ~f ~init:acc =
-    match t with
-    | Leaf -> acc
-    | Node (k, v, l, r) -> fold r ~f ~init:(f (fold l ~f ~init:acc) (k, v))
-
-  let print t ~k_to_string ~indent_level =
-    let (_, nodes) =
-      fold t
-        ~f:(fun (indentation, nodes) (k, _) ->
-            let indentation = indent_level ^ indentation in
-            let node = indentation ^ (k_to_string k) in
-            (indentation, node :: nodes)
-          )
-        ~init:(indent_level, [])
+  let to_edges t =
+    let rec to_edges_from k1 t =
+      match t with
+      | Leaf -> []
+      | Node (k2, _, l, r) ->
+          (k1, k2) :: ((to_edges_from k2 l) @ (to_edges_from k2 r))
     in
-    List.iter (List.rev nodes) ~f:print_endline
+    match t with
+    | Leaf -> []
+    | Node (k, _, l, r) -> (to_edges_from k l) @ (to_edges_from k r)
+
+  let to_dot t ~k_to_string =
+    let (edges, _) =
+      List.fold_left (to_edges t)
+        ~init:("", "\n")
+        ~f:(fun (edges, sep) (k1, k2) ->
+          let k1, k2 = k_to_string k1, k_to_string k2 in
+          (Printf.sprintf "%s%s%S -> %S;\n" edges sep k1 k2, "")
+      )
+    in
+    "digraph G {" ^ edges ^ "}"
 end
 
 let () =
@@ -74,10 +75,8 @@ let () =
   assert (Some "v1" = BinaryTree.get tree_a ~k:"k1");
   assert (Some "v2" = BinaryTree.get tree_a ~k:"k2");
   let tree_b =
-    Array.fold_left
-      (Sys.argv)
+    Array.fold_left (Sys.argv)
       ~init:BinaryTree.empty
       ~f:(fun t k -> BinaryTree.set t ~k ~v:())
   in
-  Printf.printf "%B\n" (BinaryTree.member tree_b ~k:"a");
-  BinaryTree.print tree_b ~k_to_string:(fun x -> x) ~indent_level:"-";
+  print_endline (BinaryTree.to_dot tree_b ~k_to_string:(fun x -> x))
