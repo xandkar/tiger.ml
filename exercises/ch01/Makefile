@@ -5,7 +5,9 @@ OCAMLC_BYTE    := ocamlc.opt   $(OCAMLC_OPTIONS)
 
 .PHONY: build clean
 
-build : straight_line_program_interpreter
+build : \
+	straight_line_program_interpreter \
+	tree
 
 %: %.ml %.cmo %.cmi
 	$(OCAMLC_BYTE) -o $@ $*.cmo
