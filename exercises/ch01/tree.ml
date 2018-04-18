@@ -1,4 +1,5 @@
 module Array = ArrayLabels
+module List = ListLabels
 
 module type TREE = sig
   type ('k, 'v) t
@@ -10,6 +11,12 @@ module type TREE = sig
   val get : ('k, 'v) t -> k:'k -> 'v option
 
   val member : ('k, 'v) t -> k:'k -> bool
+
+  val print
+    : ('k, 'v) t
+    -> k_to_string:('k -> string)
+    -> indent_level:string
+    -> unit
 end
 
 module BinaryTree : TREE = struct
@@ -39,6 +46,23 @@ module BinaryTree : TREE = struct
     | Node (k', _, l, _) when k < k' -> member l ~k
     | Node (k', _, _, r) when k > k' -> member r ~k
     | Node _ -> true
+
+  let rec fold t ~f ~init:acc =
+    match t with
+    | Leaf -> acc
+    | Node (k, v, l, r) -> fold r ~f ~init:(f (fold l ~f ~init:acc) (k, v))
+
+  let print t ~k_to_string ~indent_level =
+    let (_, nodes) =
+      fold t
+        ~f:(fun (indentation, nodes) (k, _) ->
+            let indentation = indent_level ^ indentation in
+            let node = indentation ^ (k_to_string k) in
+            (indentation, node :: nodes)
+          )
+        ~init:(indent_level, [])
+    in
+    List.iter (List.rev nodes) ~f:print_endline
 end
 
 let () =
@@ -55,4 +79,5 @@ let () =
       ~init:BinaryTree.empty
       ~f:(fun t k -> BinaryTree.set t ~k ~v:())
   in
-  Printf.printf "%B\n" (BinaryTree.member tree_b ~k:"a")
+  Printf.printf "%B\n" (BinaryTree.member tree_b ~k:"a");
+  BinaryTree.print tree_b ~k_to_string:(fun x -> x) ~indent_level:"-";
