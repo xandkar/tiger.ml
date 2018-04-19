@@ -21,10 +21,13 @@ build : $(EXECUTABLES)
 	$(OCAMLC_BYTE) -c $<
 
 clean:
-	rm -f $(EXECUTABLES)
+	rm -f $(EXECUTABLES) tree.dot  # There's also tree.png, but I'm keeping it.
 
-tree.png: tree
-	./tree a b c d e f g h i j k l m n o p q r s t u v foo bar kgkvbkvg lkhjlk gfjyfjf fdtrdchfhtr trhfgfch hjlilijhl iygkyugkgkhy | neato -T png > tree.png
+tree.dot: tree
+	./tree a b c d e f g h i j k l m n o p q r s t u v foo bar kgkvbkvg lkhjlk gfjyfjf fdtrdchfhtr trhfgfch hjlilijhl iygkyugkgkhy > tree.dot
+
+tree.png: tree.dot
+	neato -T png tree.dot > tree.png
 
 demo_unbalanced: tree.png
 	sxiv ./tree.png

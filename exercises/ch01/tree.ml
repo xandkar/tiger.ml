@@ -60,7 +60,7 @@ module BinaryTree : TREE = struct
         ~init:("", "\n")
         ~f:(fun (edges, sep) (k1, k2) ->
           let k1, k2 = k_to_string k1, k_to_string k2 in
-          (Printf.sprintf "%s%s%S -> %S;\n" edges sep k1 k2, "")
+          (Printf.sprintf "%s%s    %S -> %S;\n" edges sep k1 k2, "")
       )
     in
     "digraph G {" ^ edges ^ "}"
