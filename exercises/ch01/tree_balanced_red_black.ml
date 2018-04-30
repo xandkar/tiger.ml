@@ -14,8 +14,7 @@ let set t ~k ~v =
     (* LR *) | Node (B, x, Node (R, lx, ll                     , Node (R, lrx, lrl, lrr)), r                                                              ) -> Node (R, lrx, Node (B, lx , ll , lrl), Node (B, x  , lrr, r  ))
     (* RL *) | Node (B, x, l                                                             , Node (R, rx, Node (R, rlx, rll, rlr), rr                      )) -> Node (R, rlx, Node (B, x  , l  , rll), Node (B, rx , rlr, rr ))
     (* RR *) | Node (B, x, l                                                             , Node (R, rx, rl                      , Node (R, rrx, rrl, rrr))) -> Node (R, rx , Node (B, x  , l  , rl ), Node (B, rrx, rrl, rrr))
-    (* not exhaustive - reconsider *)
-             | node -> node
+             | node -> node  (* Fragile pattern. Shall we reconsider? *)
   in
   let rec set t k v =
     match t with
