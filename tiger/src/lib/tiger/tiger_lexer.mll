@@ -85,11 +85,6 @@ rule token = parse
       | "while"    -> WHILE
       | _          -> ID id
   }
-
-  (* Eat unimplemented. FIXME: stop indiscriminate eating *)
-  | _ {
-      token lexbuf
-  }
 and string_literal = parse
   (* Keep escaped quote marks as part of the string literal *)
   | '\\' '"' {
