@@ -1,9 +1,9 @@
 MAKEFLAGS := --no-builtin-rules
 
-EXE_TYPE := byte # byte | native
-EXECUTABLES := tiger
+EXE_TYPE         := byte  # byte | native
+EXECUTABLES      := tigerc tiger_tests
 OCAMLBUILD_FLAGS := -I src/exe -I src/lib/tiger
-OCAMLBUILD := ocamlbuild $(OCAMLBUILD_FLAGS)
+OCAMLBUILD       := ocamlbuild $(OCAMLBUILD_FLAGS)
 
 .PHONY: \
  all \
@@ -12,19 +12,19 @@ OCAMLBUILD := ocamlbuild $(OCAMLBUILD_FLAGS)
  test
 
 all:
-	$(MAKE) clean
-	$(MAKE) build
-	$(MAKE) test
+	@$(MAKE) -s clean
+	@$(MAKE) -s build
+	@$(MAKE) -s test
 
 build:
-	$(OCAMLBUILD) $(addsuffix _main.$(EXE_TYPE),$(EXECUTABLES))
-	mkdir -p bin/exe
-	$(foreach exe,$(EXECUTABLES),cp _build/src/exe/$(exe)_main.$(EXE_TYPE) bin/exe/$(exe))
-	rm $(addsuffix _main.$(EXE_TYPE),$(EXECUTABLES))
+	@$(OCAMLBUILD) $(addsuffix .$(EXE_TYPE),$(EXECUTABLES))
+	@mkdir -p bin/exe
+	$(foreach exe,$(EXECUTABLES),cp _build/src/exe/$(exe).$(EXE_TYPE) bin/exe/$(exe); )
+	@rm $(addsuffix .$(EXE_TYPE),$(EXECUTABLES))
 
 clean:
-	$(OCAMLBUILD) -clean
-	rm -rf ./bin
+	@$(OCAMLBUILD) -clean
+	@rm -rf ./bin
 
-test: bin/exe/tiger
-	./$<
+test: bin/exe/tiger_tests
+	@./$<
