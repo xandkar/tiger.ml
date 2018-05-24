@@ -1,9 +1,10 @@
 module List = ListLabels
 
 let test_01 =
+  let name = "an array type and an array variable" in
   let code =
     " \
-    /* an array type and an array variable */ \
+    /* "^name^" */ \
     let \
       type arrtype = array of int \
       var arr1:arrtype := \
@@ -24,12 +25,13 @@ let test_01 =
       END
     ]
   in
-  ("test_01", code, tokens)
+  (name, code, tokens)
 
 let test_02 =
+  let name = "arr1 is valid since expression 0 is int = myint" in
   let code =
     " \
-    /* arr1 is valid since expression 0 is int = myint */ \
+    /* "^name^" */ \
     let \
       type myint = int \
       type arrtype = array of myint \
@@ -52,12 +54,13 @@ let test_02 =
       END
     ]
   in
-  ("test_02", code, tokens)
+  (name, code, tokens)
 
 let test_03 =
+  let name = "a record type and a record variable" in
   let code =
     " \
-    /* a record type and a record variable */ \
+    /* "^name^" */ \
     let \
       type rectype = \
         { name : string \
@@ -92,7 +95,7 @@ let test_03 =
       END
     ]
   in
-  ("test_03", code, tokens)
+  (name, code, tokens)
 
 let test_04 =
   let name = "define a recursive function" in
