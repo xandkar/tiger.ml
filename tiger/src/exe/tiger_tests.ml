@@ -148,19 +148,20 @@ let tests =
 let () =
   let bar_sep = String.make 80 '-' in
   let bar_end = String.make 80 '=' in
-  List.iter tests ~f:(fun (name, code, tokens_expected) ->
+  List.iteri tests ~f:(fun i (name, code, tokens_expected) ->
+    let i = i + 1 in  (* Because iteri starts with 0 *)
     let open Printf in
-    printf "%s\n==> Test %S: " bar_sep name;
+    printf "%s\n Test %d : %S\n" bar_sep i name;
     let tokens_emitted = tokens_of_code code in
     (try
       assert (tokens_emitted = tokens_expected);
-      print_endline "OK";
+      print_endline " ---> OK";
     with Assert_failure _ ->
       let tokens_to_string tokens =
         String.concat "; " (List.map ~f:Tiger.Parser.Token.to_string tokens)
       in
       printf
-        "ERROR\n    Expected: %s\n    Emitted : %s\n\n"
+        " ---> ERROR\n    Expected: %s\n    Emitted : %s\n\n"
         (tokens_to_string tokens_expected)
         (tokens_to_string tokens_emitted)
     );
