@@ -1,9 +1,11 @@
 MAKEFLAGS := --no-builtin-rules
 
-EXE_TYPE         := byte  # byte | native
-EXECUTABLES      := tigerc tiger_tests
-OCAMLBUILD_FLAGS := -I src/exe -I src/lib/tiger
-OCAMLBUILD       := ocamlbuild $(OCAMLBUILD_FLAGS)
+EXE_TYPE              := byte  # byte | native
+EXECUTABLES           := tigerc tiger_tests
+OCAMLBUILD_FLAGS_DIRS := -I src/exe -I src/lib/tiger
+OCAMLBUILD_FLAGS_COMP := -cflags '-w A'
+OCAMLBUILD_FLAGS      := $(OCAMLBUILD_FLAGS_COMP) $(OCAMLBUILD_FLAGS_DIRS)
+OCAMLBUILD            := ocamlbuild $(OCAMLBUILD_FLAGS)
 
 .PHONY: \
  all \
