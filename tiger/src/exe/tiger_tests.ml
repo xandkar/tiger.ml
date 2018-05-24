@@ -129,6 +129,23 @@ let test_04 =
   in
   (name, code, tokens)
 
+let test_09 =
+  let name = "error : types of then - else differ" in
+  let code =
+    "
+    /* "^name^" */
+
+    if (5>4) then 13 else  \" \"
+    "
+  in
+  let tokens =
+    let open Tiger.Parser.Token in
+    [ IF; LPAREN; INT 5; GT; INT 4; RPAREN; THEN; INT 13; ELSE; STRING " "
+    ]
+  in
+  (* TODO: Type error test case *)
+  (name, code, tokens)
+
 let tokens_of_code code =
   let lexbuf = Lexing.from_string code in
   let rec tokens () =
@@ -143,6 +160,7 @@ let tests =
   ; test_02
   ; test_03
   ; test_04
+  ; test_09
   ]
 
 let () =
