@@ -94,6 +94,38 @@ let test_03 =
   in
   ("test_03", code, tokens)
 
+let test_04 =
+  let name = "define a recursive function" in
+  let code =
+    " \
+    /* "^name^" */ \
+    let \
+    \
+      /* calculate n! */ \
+      function nfactor(n: int): int = \
+        if n = 0  \
+        then 1 \
+        else n * nfactor(n-1) \
+    \
+    in \
+      nfactor(10) \
+    end \
+    "
+  in
+  let tokens =
+    let open Tiger.Parser.Token in
+    [ LET;
+        FUNCTION; ID "nfactor"; LPAREN; ID "n"; COLON; ID "int"; RPAREN; COLON; ID "int"; EQ;
+          IF; ID "n"; EQ; INT 0;
+          THEN; INT 1;
+          ELSE; ID "n"; TIMES; ID "nfactor"; LPAREN; ID "n"; MINUS; INT 1; RPAREN;
+      IN;
+        ID "nfactor"; LPAREN; INT 10; RPAREN;
+      END
+    ]
+  in
+  (name, code, tokens)
+
 let tokens_of_code code =
   let lexbuf = Lexing.from_string code in
   let rec tokens () =
@@ -107,6 +139,7 @@ let tests =
   [ test_01
   ; test_02
   ; test_03
+  ; test_04
   ]
 
 let () =
