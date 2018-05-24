@@ -33,7 +33,7 @@ let test_02 =
     let \
       type myint = int \
       type arrtype = array of myint \
-      var arr1:arrtype :=
+      var arr1:arrtype := \
         arrtype [10] of 0 \
     in \
       arr1 \
@@ -98,8 +98,8 @@ let tokens_of_code code =
   let lexbuf = Lexing.from_string code in
   let rec tokens () =
     match Tiger.Lexer.token lexbuf with
-    | Tiger.Parser.Token.EOF -> []
-    | token -> token :: tokens ()
+    | None -> []
+    | Some token -> token :: tokens ()
   in
   tokens ()
 
@@ -121,7 +121,7 @@ let () =
       print_endline "OK";
     with Assert_failure _ ->
       let tokens_to_string tokens =
-        String.concat "; " (List.map Tiger.Parser.Token.to_string tokens)
+        String.concat "; " (List.map ~f:Tiger.Parser.Token.to_string tokens)
       in
       printf
         "ERROR\n    Expected: %s\n    Emitted : %s\n\n"

@@ -11,7 +11,7 @@ let newline = '\n' | '\r' | "\n\r"
 
 rule token = parse
   | eof {
-      EOF
+      None
   }
 
   (* Track line number *)
@@ -26,29 +26,29 @@ rule token = parse
       comment lexbuf
   }
 
-  | ":=" {ASSIGN}
-  | "<=" {LE}
-  | ">=" {GE}
-  | "<>" {NEQ}
-  | '&'  {AND}
-  | '('  {LPAREN}
-  | ')'  {RPAREN}
-  | '*'  {TIMES}
-  | '+'  {PLUS}
-  | '-'  {MINUS}
-  | '/'  {DIVIDE}
-  | ','  {COMMA}
-  | '.'  {DOT}
-  | ':'  {COLON}
-  | ';'  {SEMICOLON}
-  | '>'  {GT}
-  | '<'  {LT}
-  | '='  {EQ}
-  | '['  {LBRACK}
-  | ']'  {RBRACK}
-  | '{'  {LBRACE}
-  | '}'  {RBRACE}
-  | '|'  {OR}
+  | ":=" {Some ASSIGN}
+  | "<=" {Some LE}
+  | ">=" {Some GE}
+  | "<>" {Some NEQ}
+  | '&'  {Some AND}
+  | '('  {Some LPAREN}
+  | ')'  {Some RPAREN}
+  | '*'  {Some TIMES}
+  | '+'  {Some PLUS}
+  | '-'  {Some MINUS}
+  | '/'  {Some DIVIDE}
+  | ','  {Some COMMA}
+  | '.'  {Some DOT}
+  | ':'  {Some COLON}
+  | ';'  {Some SEMICOLON}
+  | '>'  {Some GT}
+  | '<'  {Some LT}
+  | '='  {Some EQ}
+  | '['  {Some LBRACK}
+  | ']'  {Some RBRACK}
+  | '{'  {Some LBRACE}
+  | '}'  {Some RBRACE}
+  | '|'  {Some OR}
 
   (* String literal *)
   | '"' {
@@ -61,29 +61,29 @@ rule token = parse
   }
 
   | (num+ as int) {
-    INT (int_of_string int)
+    Some (INT (int_of_string int))
   }
 
   | (alpha (alpha | num | '_')* as id) {
       match id with
-      | "array"    -> ARRAY
-      | "break"    -> BREAK
-      | "do"       -> DO
-      | "else"     -> ELSE
-      | "end"      -> END
-      | "for"      -> FOR
-      | "function" -> FUNCTION
-      | "if"       -> IF
-      | "in"       -> IN
-      | "let"      -> LET
-      | "nil"      -> NIL
-      | "of"       -> OF
-      | "then"     -> THEN
-      | "to"       -> TO
-      | "type"     -> TYPE
-      | "var"      -> VAR
-      | "while"    -> WHILE
-      | _          -> ID id
+      | "array"    -> Some ARRAY
+      | "break"    -> Some BREAK
+      | "do"       -> Some DO
+      | "else"     -> Some ELSE
+      | "end"      -> Some END
+      | "for"      -> Some FOR
+      | "function" -> Some FUNCTION
+      | "if"       -> Some IF
+      | "in"       -> Some IN
+      | "let"      -> Some LET
+      | "nil"      -> Some NIL
+      | "of"       -> Some OF
+      | "then"     -> Some THEN
+      | "to"       -> Some TO
+      | "type"     -> Some TYPE
+      | "var"      -> Some VAR
+      | "while"    -> Some WHILE
+      | _          -> Some (ID id)
   }
 and string_literal = parse
   (* Keep escaped quote marks as part of the string literal *)
@@ -95,7 +95,7 @@ and string_literal = parse
   | '"' {
       let string = Buffer.contents string_buf in
       Buffer.reset string_buf;
-      STRING string
+      Some (STRING string)
   }
 
 
@@ -106,7 +106,7 @@ and string_literal = parse
 and comment = parse
   | eof {
       (* TODO: Error: unterminated comment? or we don't care? *)
-      EOF
+      None
   }
 
   (* Track line number *)
