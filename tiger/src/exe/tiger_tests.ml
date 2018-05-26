@@ -147,27 +147,6 @@ let test_09 =
   (* TODO: Type error test case *)
   (name, code, tokens)
 
-let tokens_of_code code =
-  let lexbuf = Lexing.from_string code in
-  let rec tokens () =
-    let token = Tiger.Lexer.token lexbuf in
-    (* Avoiding fragile pattern-matching *)
-    if token = Tiger.Parser.EOF then [] else token :: tokens ()
-  in
-  tokens ()
-
-let parsetree_of_code code =
-  let lb = Lexing.from_string code in
-  (match Tiger.Parser.program Tiger.Lexer.token lb with
-  | exception Parsing.Parse_error ->
-      let module L = Lexing in
-      let L.({lex_curr_p = {pos_lnum=l; pos_bol=b; pos_cnum=c; _}; _}) = lb in
-      let msg = sprintf "Syntax error around line: %d, column: %d" l (c - b) in
-      Error msg
-  | parsetree ->
-      Ok parsetree
-  )
-
 let tests =
   [ test_01
   ; test_02
@@ -177,6 +156,27 @@ let tests =
   ]
 
 let () =
+  let tokens_of_code code =
+    let lexbuf = Lexing.from_string code in
+    let rec tokens () =
+      let token = Tiger.Lexer.token lexbuf in
+      (* Avoiding fragile pattern-matching *)
+      if token = Tiger.Parser.EOF then [] else token :: tokens ()
+    in
+    tokens ()
+  in
+  let parsetree_of_code code =
+    let lb = Lexing.from_string code in
+    (match Tiger.Parser.program Tiger.Lexer.token lb with
+    | exception Parsing.Parse_error ->
+        let module L = Lexing in
+        let L.({lex_curr_p = {pos_lnum=l; pos_bol=b; pos_cnum=c; _}; _}) = lb in
+        let msg = sprintf "Syntax error around line: %d, column: %d" l (c - b) in
+        Error msg
+    | parsetree ->
+        Ok parsetree
+    )
+  in
   let bar_sep = String.make 80 '-' in
   let bar_end = String.make 80 '=' in
   let indent n = String.make (2 * n) ' ' in
