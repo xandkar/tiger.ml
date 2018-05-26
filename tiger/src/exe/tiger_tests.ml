@@ -1,3 +1,5 @@
+open Printf
+
 module List = ListLabels
 
 let test_01 =
@@ -15,7 +17,7 @@ let test_01 =
     "
   in
   let tokens =
-    let open Tiger.Parser.Token in
+    let open Tiger.Parser in
     [ LET;
         TYPE; ID "arrtype"; EQ; ARRAY; OF; ID "int";
         VAR; ID "arr1"; COLON; ID "arrtype"; ASSIGN;
@@ -43,7 +45,7 @@ let test_02 =
     "
   in
   let tokens =
-    let open Tiger.Parser.Token in
+    let open Tiger.Parser in
     [ LET;
         TYPE; ID "myint"; EQ; ID "int";
         TYPE; ID "arrtype"; EQ; ARRAY; OF; ID "myint";
@@ -78,7 +80,7 @@ let test_03 =
     "
   in
   let tokens =
-    let open Tiger.Parser.Token in
+    let open Tiger.Parser in
     [ LET;
         TYPE; ID "rectype"; EQ;
           LBRACE; ID "name"; COLON; ID "string";
@@ -116,7 +118,7 @@ let test_04 =
     "
   in
   let tokens =
-    let open Tiger.Parser.Token in
+    let open Tiger.Parser in
     [ LET;
         FUNCTION; ID "nfactor"; LPAREN; ID "n"; COLON; ID "int"; RPAREN; COLON; ID "int"; EQ;
           IF; ID "n"; EQ; INT 0;
@@ -132,14 +134,13 @@ let test_04 =
 let test_09 =
   let name = "error : types of then - else differ" in
   let code =
-    "
-    /* "^name^" */
-
-    if (5>4) then 13 else  \" \"
+    " \
+    /* "^name^" */ \
+    if (5>4) then 13 else  \" \" \
     "
   in
   let tokens =
-    let open Tiger.Parser.Token in
+    let open Tiger.Parser in
     [ IF; LPAREN; INT 5; GT; INT 4; RPAREN; THEN; INT 13; ELSE; STRING " "
     ]
   in
@@ -149,11 +150,23 @@ let test_09 =
 let tokens_of_code code =
   let lexbuf = Lexing.from_string code in
   let rec tokens () =
-    match Tiger.Lexer.token lexbuf with
-    | None -> []
-    | Some token -> token :: tokens ()
+    let token = Tiger.Lexer.token lexbuf in
+    (* Avoiding fragile pattern-matching *)
+    if token = Tiger.Parser.EOF then [] else token :: tokens ()
   in
   tokens ()
+
+let parsetree_of_code code =
+  let lb = Lexing.from_string code in
+  (match Tiger.Parser.program Tiger.Lexer.token lb with
+  | exception Parsing.Parse_error ->
+      let module L = Lexing in
+      let L.({lex_curr_p = {pos_lnum=l; pos_bol=b; pos_cnum=c; _}; _}) = lb in
+      let msg = sprintf "Syntax error around line: %d, column: %d" l (c - b) in
+      Error msg
+  | parsetree ->
+      Ok parsetree
+  )
 
 let tests =
   [ test_01
@@ -166,22 +179,38 @@ let tests =
 let () =
   let bar_sep = String.make 80 '-' in
   let bar_end = String.make 80 '=' in
+  let indent n = String.make (2 * n) ' ' in
+  let color_on_green = "\027[0;32m" in
+  let color_on_red   = "\027[1;31m" in
+  let color_off      = "\027[0m" in
   List.iteri tests ~f:(fun i (name, code, tokens_expected) ->
     let i = i + 1 in  (* Because iteri starts with 0 *)
-    let open Printf in
-    printf "%s\n Test %d : %S\n" bar_sep i name;
+    printf "%s\n%sTest %d : %S\n" bar_sep (indent 0) i name;
+
+    printf "%sLexing : " (indent 1);
     let tokens_emitted = tokens_of_code code in
     (try
       assert (tokens_emitted = tokens_expected);
-      print_endline " ---> OK";
+      printf "%sOK%s\n" color_on_green color_off;
     with Assert_failure _ ->
       let tokens_to_string tokens =
-        String.concat "; " (List.map ~f:Tiger.Parser.Token.to_string tokens)
+        String.concat "; " (List.map ~f:Tiger.Parser_token.to_string tokens)
       in
       printf
-        " ---> ERROR\n    Expected: %s\n    Emitted : %s\n\n"
+        "%sERROR%s\n%sExpected: %s\n%sEmitted : %s\n\n"
+        color_on_red
+        color_off
+        (indent 2)
         (tokens_to_string tokens_expected)
+        (indent 2)
         (tokens_to_string tokens_emitted)
     );
+
+    printf "%sParsing: " (indent 1);
+    (match parsetree_of_code code with
+    | Error errmsg -> printf "%sERROR:%s %s\n" color_on_red   color_off errmsg
+    | Ok parsetree -> printf "%sOK:%s %s\n"    color_on_green color_off parsetree
+    );
+
   );
   print_endline bar_end;
