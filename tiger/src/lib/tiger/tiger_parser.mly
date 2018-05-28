@@ -167,6 +167,21 @@ exp:
       "unit[]"
     }
 
+rec_field_assignments:
+  | ID EQ exp
+    {
+      let id = $1 in
+      let exp = $3 in
+      sprintf "%S = %s" id exp
+    }
+  | ID EQ exp COMMA rec_field_assignments
+    {
+      let id = $1 in
+      let exp = $3 in
+      let rec_field_assignments = $5 in
+      sprintf "%S = %s, %s" id exp rec_field_assignments
+    }
+
 exps:
   | exp
     {
@@ -267,21 +282,6 @@ tyfields:
       let tyfield = sprintf "%s : %s" id_1 id_2 in
       let tyfields = $5 in
       sprintf "%s, %s" tyfield tyfields
-    }
-
-rec_field_assignments:
-  | ID EQ exp
-    {
-      let id = $1 in
-      let exp = $3 in
-      sprintf "%S = %s" id exp
-    }
-  | ID EQ exp COMMA rec_field_assignments
-    {
-      let id = $1 in
-      let exp = $3 in
-      let rec_field_assignments = $5 in
-      sprintf "%S = %s, %s" id exp rec_field_assignments
     }
 
 fun_args:
