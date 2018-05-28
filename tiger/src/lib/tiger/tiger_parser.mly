@@ -254,22 +254,19 @@ dec:
     }
 
 tyfields:
-/*| epsilon */
-  | tyfield
-    {$1}
-  | tyfield COMMA tyfields
-    {
-      let tyfield = $1 in
-      let tyfields = $3 in
-      sprintf "%s, %s" tyfield tyfields
-    }
-
-tyfield:
   | ID COLON ID
     {
-      let id = $1 in
-      let type_id = $3 in
-      sprintf "tyfield[%s, %s]" id type_id
+      let id_1 = $1 in
+      let id_2 = $3 in
+      sprintf "%s : %s" id_1 id_2
+    }
+  | ID COLON ID COMMA tyfields
+    {
+      let id_1 = $1 in
+      let id_2 = $3 in
+      let tyfield = sprintf "%s : %s" id_1 id_2 in
+      let tyfields = $5 in
+      sprintf "%s, %s" tyfield tyfields
     }
 
 rec_field_assignments:
