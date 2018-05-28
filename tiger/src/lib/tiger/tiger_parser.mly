@@ -82,13 +82,20 @@ exp:
     {
       sprintf "negation[%s]" $2
     }
-  | type_id LBRACK exp RBRACK OF exp
+  | ID LBRACK exp RBRACK OF exp
     {
-      sprintf "array[type[%s], size[%s], val[%s]]" $1 $3 $6
+      let type_id = $1 in
+      let exp_1 = $3 in
+      let exp_2 = $6 in
+      sprintf "array[type[%s], size[%s], val[%s]]" type_id exp_1 exp_2
     }
-  | type_id LBRACE rec_field_assignments RBRACE
+  | ID LBRACE rec_field_assignments RBRACE
     {
-      sprintf "record[type[%s], rec_field_assignments[%s]]" $1 $3
+      let type_id = $1 in
+      let rec_field_assignments = $3 in
+      sprintf
+        "record[type[%s], rec_field_assignments[%s]]"
+        type_id rec_field_assignments
     }
   | lvalue
     {
@@ -178,6 +185,12 @@ dec:
   | fundec {$1}
 
 fundec:
+  | FUNCTION id unit EQ exp
+    {
+      let id       = $2 in
+      let exp      = $5 in
+      sprintf "fundec[%s, exp[%s]]" id exp
+    }
   | FUNCTION id LPAREN tyfields RPAREN EQ exp
     {
       let id       = $2 in
@@ -185,7 +198,7 @@ fundec:
       let exp      = $7 in
       sprintf "fundec[%s, tyfields[%s], exp[%s]]" id tyfields exp
     }
-  | FUNCTION id LPAREN tyfields RPAREN COLON type_id EQ exp
+  | FUNCTION id LPAREN tyfields RPAREN COLON ID EQ exp
     {
       let id       = $2 in
       let tyfields = $4 in
@@ -203,23 +216,28 @@ vardec:
       let exp = $4 in
       sprintf "vardec[%s, exp[%s]]" id exp
     }
-  | VAR id COLON type_id ASSIGN exp
+  | VAR id COLON ID ASSIGN exp
     {
       let id = $2 in
-      let tyid = $4 in
+      let type_id = $4 in
       let exp = $6 in
-      sprintf "vardec[%s, type_id[%s], exp[%s]]" id tyid exp
+      sprintf "vardec[%s, type_id[%s], exp[%s]]" id type_id exp
     }
 
 tydec:
-  | TYPE type_id EQ ty
+  | TYPE ID EQ ty
     {
-      sprintf "tydec[%s, %s]" $2 $4
+      let type_id = $2 in
+      let ty = $4 in
+      sprintf "tydec[%s, %s]" type_id ty
     }
 
 ty:
-  | type_id
-    {$1}
+  | ID
+    {
+      let type_id = $1 in
+      sprintf "type[type_id[%S]]" type_id
+    }
   | LBRACE RBRACE
     {
       "record[]"
@@ -229,7 +247,7 @@ ty:
       let tyfields = $2 in
       sprintf "record[%s]" tyfields
     }
-  | ARRAY OF type_id
+  | ARRAY OF ID
     {
       let type_id = $3 in
       sprintf "array_of_type[%s]" type_id
@@ -247,7 +265,7 @@ tyfields:
     }
 
 tyfield:
-  | id COLON type_id
+  | id COLON ID
     {
       let id = $1 in
       let type_id = $3 in
@@ -265,12 +283,6 @@ unit:
   | LPAREN RPAREN
     {
       "unit[]"
-    }
-
-type_id:
-  | id
-    {
-      sprintf "type_id[%S]" $1
     }
 
 rec_field_assignments:
