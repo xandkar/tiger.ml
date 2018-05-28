@@ -109,7 +109,7 @@ exp:
     {
       sprintf "string[%S]" $1
     }
-  | ID unit
+  | ID LPAREN RPAREN
     {
       let id = $1 in
       sprintf "fun_call[%s, []]" id
@@ -161,9 +161,10 @@ exp:
       let seq = $4 in
       sprintf "let[decs[%s], in[seq[%s]]]" decs seq
     }
-  | unit
+  | LPAREN RPAREN
     {
-      $1
+      (* Perhaps "void"? *)
+      "unit[]"
     }
 
 seq:
@@ -192,18 +193,18 @@ dec:
   | fundec {$1}
 
 fundec:
-  | FUNCTION ID unit EQ exp
+  | FUNCTION ID LPAREN RPAREN EQ exp
     {
       let id       = $2 in
-      let exp      = $5 in
-      sprintf "fundec[%s, exp[%s]]" id exp
+      let exp      = $6 in
+      sprintf "fundec[%s, arguments[], exp[%s]]" id exp
     }
   | FUNCTION ID LPAREN tyfields RPAREN EQ exp
     {
       let id       = $2 in
       let tyfields = $4 in
       let exp      = $7 in
-      sprintf "fundec[%s, tyfields[%s], exp[%s]]" id tyfields exp
+      sprintf "fundec[%s, arguments[%s], exp[%s]]" id tyfields exp
     }
   | FUNCTION ID LPAREN tyfields RPAREN COLON ID EQ exp
     {
@@ -277,13 +278,6 @@ tyfield:
       let id = $1 in
       let type_id = $3 in
       sprintf "tyfield[%s, %s]" id type_id
-    }
-
-/* Perhaps "void"? */
-unit:
-  | LPAREN RPAREN
-    {
-      "unit[]"
     }
 
 rec_field_assignments:
