@@ -151,15 +151,15 @@ exp:
     {
       "break[]"
     }
-  | LPAREN seq RPAREN
+  | LPAREN exps RPAREN
     {
-      sprintf "seq[%s]" $2
+      sprintf "exps[%s]" $2
     }
-  | LET decs IN seq END
+  | LET decs IN exps END
     {
       let decs = $2 in
-      let seq = $4 in
-      sprintf "let[decs[%s], in[seq[%s]]]" decs seq
+      let exps = $4 in
+      sprintf "let[decs[%s], in[exps[%s]]]" decs exps
     }
   | LPAREN RPAREN
     {
@@ -167,12 +167,12 @@ exp:
       "unit[]"
     }
 
-seq:
+exps:
   | exp
     {
       sprintf "%s" $1
     }
-  | exp SEMICOLON seq
+  | exp SEMICOLON exps
     {
       sprintf "%s; %s" $1 $3
     }
