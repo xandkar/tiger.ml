@@ -233,32 +233,28 @@ vardec:
     }
 
 tydec:
-  | TYPE ID EQ ty
+  | TYPE ID EQ ID
+    {
+      let type_id_new = $2 in
+      let type_id_orig = $4 in
+      sprintf "tydec_alias[from[%s], to[%s]]" type_id_new type_id_orig
+    }
+  | TYPE ID EQ LBRACE RBRACE
     {
       let type_id = $2 in
-      let ty = $4 in
-      sprintf "tydec[%s, %s]" type_id ty
+      sprintf "tydec_empty_record[%s]" type_id
     }
-
-ty:
-  | ID
+  | TYPE ID EQ LBRACE tyfields RBRACE
     {
-      let type_id = $1 in
-      sprintf "type[type_id[%S]]" type_id
+      let type_id = $2 in
+      let tyfields = $5 in
+      sprintf "tydec_record[%s, fields[%s]]" type_id tyfields
     }
-  | LBRACE RBRACE
+  | TYPE ID EQ ARRAY OF ID
     {
-      "record[]"
-    }
-  | LBRACE tyfields RBRACE
-    {
-      let tyfields = $2 in
-      sprintf "record[%s]" tyfields
-    }
-  | ARRAY OF ID
-    {
-      let type_id = $3 in
-      sprintf "array_of_type[%s]" type_id
+      let type_id = $2 in
+      let element_type_id = $6 in
+      sprintf "tydec_array[%s, elements_of_type[%s]]" type_id element_type_id
     }
 
 tyfields:
