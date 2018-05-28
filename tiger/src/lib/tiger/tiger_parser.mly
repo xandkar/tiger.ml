@@ -109,9 +109,16 @@ exp:
     {
       sprintf "string[%S]" $1
     }
-  | fun_call
+  | ID unit
     {
-      $1
+      let id = $1 in
+      sprintf "fun_call[%s, []]" id
+    }
+  | ID LPAREN fun_args RPAREN
+    {
+      let id = $1 in
+      let fun_args = $3 in
+      sprintf "fun_call[%s, %s]" id fun_args
     }
   | exp op exp
     {
@@ -292,19 +299,6 @@ rec_field_assignments:
       let exp = $3 in
       let rec_field_assignments = $5 in
       sprintf "%S = %s, %s" id exp rec_field_assignments
-    }
-
-fun_call:
-  | ID unit
-    {
-      let id = $1 in
-      sprintf "fun_call[%s, []]" id
-    }
-  | ID LPAREN fun_args RPAREN
-    {
-      let id = $1 in
-      let fun_args = $3 in
-      sprintf "fun_call[%s, %s]" id fun_args
     }
 
 fun_args:
