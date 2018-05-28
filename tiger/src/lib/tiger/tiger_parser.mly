@@ -188,51 +188,7 @@ decs:
     }
 
 dec:
-  | tydec  {$1}
-  | vardec {$1}
-  | fundec {$1}
-
-fundec:
-  | FUNCTION ID LPAREN RPAREN EQ exp
-    {
-      let id       = $2 in
-      let exp      = $6 in
-      sprintf "fundec[%s, arguments[], exp[%s]]" id exp
-    }
-  | FUNCTION ID LPAREN tyfields RPAREN EQ exp
-    {
-      let id       = $2 in
-      let tyfields = $4 in
-      let exp      = $7 in
-      sprintf "fundec[%s, arguments[%s], exp[%s]]" id tyfields exp
-    }
-  | FUNCTION ID LPAREN tyfields RPAREN COLON ID EQ exp
-    {
-      let id       = $2 in
-      let tyfields = $4 in
-      let type_id  = $7 in
-      let exp      = $9 in
-      sprintf
-        "fundec[%s, tyfields[%s], type_id[%s], exp[%s]]"
-        id tyfields type_id exp
-    }
-
-vardec:
-  | VAR ID ASSIGN exp
-    {
-      let id = $2 in
-      let exp = $4 in
-      sprintf "vardec[%s, exp[%s]]" id exp
-    }
-  | VAR ID COLON ID ASSIGN exp
-    {
-      let id = $2 in
-      let type_id = $4 in
-      let exp = $6 in
-      sprintf "vardec[%s, type_id[%s], exp[%s]]" id type_id exp
-    }
-
-tydec:
+  /* Tydec */
   | TYPE ID EQ ID
     {
       let type_id_new = $2 in
@@ -255,6 +211,46 @@ tydec:
       let type_id = $2 in
       let element_type_id = $6 in
       sprintf "tydec_array[%s, elements_of_type[%s]]" type_id element_type_id
+    }
+
+  /* Vardec */
+  | VAR ID ASSIGN exp
+    {
+      let id = $2 in
+      let exp = $4 in
+      sprintf "vardec[%s, exp[%s]]" id exp
+    }
+  | VAR ID COLON ID ASSIGN exp
+    {
+      let id = $2 in
+      let type_id = $4 in
+      let exp = $6 in
+      sprintf "vardec[%s, type_id[%s], exp[%s]]" id type_id exp
+    }
+
+  /* Fundec */
+  | FUNCTION ID LPAREN RPAREN EQ exp
+    {
+      let id       = $2 in
+      let exp      = $6 in
+      sprintf "fundec[%s, arguments[], exp[%s]]" id exp
+    }
+  | FUNCTION ID LPAREN tyfields RPAREN EQ exp
+    {
+      let id       = $2 in
+      let tyfields = $4 in
+      let exp      = $7 in
+      sprintf "fundec[%s, arguments[%s], exp[%s]]" id tyfields exp
+    }
+  | FUNCTION ID LPAREN tyfields RPAREN COLON ID EQ exp
+    {
+      let id       = $2 in
+      let tyfields = $4 in
+      let type_id  = $7 in
+      let exp      = $9 in
+      sprintf
+        "fundec[%s, tyfields[%s], type_id[%s], exp[%s]]"
+        id tyfields type_id exp
     }
 
 tyfields:
