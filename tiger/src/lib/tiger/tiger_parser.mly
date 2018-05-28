@@ -132,7 +132,7 @@ exp:
     {
       sprintf "while[%s, do[%s]]" $2 $4
     }
-  | FOR id ASSIGN exp TO exp DO exp
+  | FOR ID ASSIGN exp TO exp DO exp
     {
       let id = $2 in
       let e1 = $4 in
@@ -185,20 +185,20 @@ dec:
   | fundec {$1}
 
 fundec:
-  | FUNCTION id unit EQ exp
+  | FUNCTION ID unit EQ exp
     {
       let id       = $2 in
       let exp      = $5 in
       sprintf "fundec[%s, exp[%s]]" id exp
     }
-  | FUNCTION id LPAREN tyfields RPAREN EQ exp
+  | FUNCTION ID LPAREN tyfields RPAREN EQ exp
     {
       let id       = $2 in
       let tyfields = $4 in
       let exp      = $7 in
       sprintf "fundec[%s, tyfields[%s], exp[%s]]" id tyfields exp
     }
-  | FUNCTION id LPAREN tyfields RPAREN COLON ID EQ exp
+  | FUNCTION ID LPAREN tyfields RPAREN COLON ID EQ exp
     {
       let id       = $2 in
       let tyfields = $4 in
@@ -210,13 +210,13 @@ fundec:
     }
 
 vardec:
-  | VAR id ASSIGN exp
+  | VAR ID ASSIGN exp
     {
       let id = $2 in
       let exp = $4 in
       sprintf "vardec[%s, exp[%s]]" id exp
     }
-  | VAR id COLON ID ASSIGN exp
+  | VAR ID COLON ID ASSIGN exp
     {
       let id = $2 in
       let type_id = $4 in
@@ -265,17 +265,11 @@ tyfields:
     }
 
 tyfield:
-  | id COLON ID
+  | ID COLON ID
     {
       let id = $1 in
       let type_id = $3 in
       sprintf "tyfield[%s, %s]" id type_id
-    }
-
-id:
-  | ID
-    {
-      sprintf "id[%S]" $1
     }
 
 /* Perhaps "void"? */
@@ -286,23 +280,31 @@ unit:
     }
 
 rec_field_assignments:
-  | id EQ exp
+  | ID EQ exp
     {
-      sprintf "%S = %s" $1 $3
+      let id = $1 in
+      let exp = $3 in
+      sprintf "%S = %s" id exp
     }
-  | id EQ exp COMMA rec_field_assignments
+  | ID EQ exp COMMA rec_field_assignments
     {
-      sprintf "%S = %s, %s" $1 $3 $5
+      let id = $1 in
+      let exp = $3 in
+      let rec_field_assignments = $5 in
+      sprintf "%S = %s, %s" id exp rec_field_assignments
     }
 
 fun_call:
-  | id unit
+  | ID unit
     {
-      sprintf "fun_call[%s, %s]" $1 $2
+      let id = $1 in
+      sprintf "fun_call[%s, []]" id
     }
-  | id LPAREN fun_args RPAREN
+  | ID LPAREN fun_args RPAREN
     {
-      sprintf "fun_call[%s, %s]" $1 $3
+      let id = $1 in
+      let fun_args = $3 in
+      sprintf "fun_call[%s, %s]" id fun_args
     }
 
 fun_args:
@@ -330,17 +332,22 @@ op:
   | OR     {"|"}
 
 lvalue:
-  | id
+  | ID
     {
-      sprintf "lvalue[%s]" $1
+      let id = $1 in
+      sprintf "lvalue[%s]" id
     }
-  | lvalue DOT id
+  | lvalue DOT ID
     {
-      sprintf "get_record_field[%s, %s]" $1 $3
+      let record = $1 in
+      let field = $3 in
+      sprintf "get_record_field[%s, %s]" record field
     }
   | lvalue LBRACK exp RBRACK
     {
-      sprintf "get_array_subscript[%s, %s]" $1 $3
+      let array = $1 in
+      let subscript = $3 in
+      sprintf "get_array_subscript[%s, %s]" array subscript
     }
 
 %%
