@@ -147,6 +147,7 @@ let test_case_from_book_09 =
   (* TODO: Type error test case *)
   (name, code, tokens)
 
+(*
 let test_case_from_book_queens =
   let code =
     "\
@@ -195,6 +196,7 @@ let test_case_from_book_queens =
     "
   in
   (code, code, [])
+*)
 
 let test_cases_from_book =
   [ test_case_from_book_01
@@ -202,7 +204,7 @@ let test_cases_from_book =
   ; test_case_from_book_03
   ; test_case_from_book_04
   ; test_case_from_book_09
-  ; test_case_from_book_queens
+  (*; test_case_from_book_queens*)
   ]
 
 let tests_micro_cases =
