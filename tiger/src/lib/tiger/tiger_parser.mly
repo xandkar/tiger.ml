@@ -68,6 +68,7 @@ program:
     {
       sprintf "program[%s]" $1
     }
+  ;
 
 exp:
   | NIL
@@ -85,9 +86,11 @@ exp:
   | ID LBRACK exp RBRACK OF exp
     {
       let type_id = $1 in
-      let exp_1 = $3 in
-      let exp_2 = $6 in
-      sprintf "array[type[%s], size[%s], val[%s]]" type_id exp_1 exp_2
+      let number_of_elements = $3 in
+      let initial_value = $6 in
+      sprintf
+        "array[type[%s], size[%s], val[%s]]"
+        type_id number_of_elements initial_value
     }
   | ID LBRACE rec_field_assignments RBRACE
     {
@@ -166,6 +169,7 @@ exp:
       (* Perhaps "void"? *)
       "unit[]"
     }
+  ;
 
 rec_field_assignments:
   | ID EQ exp
@@ -181,16 +185,21 @@ rec_field_assignments:
       let rec_field_assignments = $5 in
       sprintf "%S = %s, %s" id exp rec_field_assignments
     }
+  ;
 
 exps:
   | exp
     {
-      sprintf "%s" $1
+      let exp = $1 in
+      sprintf "%s" exp
     }
   | exp SEMICOLON exps
     {
-      sprintf "%s; %s" $1 $3
+      let exp = $1 in
+      let exps = $3 in
+      sprintf "%s; %s" exp exps
     }
+  ;
 
 decs:
   | dec
@@ -201,6 +210,7 @@ decs:
     {
       sprintf "%s %s" $1 $2
     }
+  ;
 
 dec:
   /* Tydec */
@@ -267,6 +277,7 @@ dec:
         "fundec[%s, tyfields[%s], type_id[%s], exp[%s]]"
         id tyfields type_id exp
     }
+  ;
 
 tyfields:
   | ID COLON ID
@@ -283,6 +294,7 @@ tyfields:
       let tyfields = $5 in
       sprintf "%s, %s" tyfield tyfields
     }
+  ;
 
 fun_args:
   | exp
@@ -293,6 +305,7 @@ fun_args:
     {
       sprintf "%s, %s" $1 $3
     }
+  ;
 
 op:
   | PLUS   {"+"}
@@ -307,24 +320,37 @@ op:
   | LE     {"<="}
   | AND    {"&"}
   | OR     {"|"}
+  ;
 
 lvalue:
-  | ID
+  | ID lvalue_part
     {
       let id = $1 in
-      sprintf "lvalue[%s]" id
+      let part = $2 in
+      sprintf "lvalue[%s, part[%s]]" id part
     }
-  | lvalue DOT ID
+  ;
+
+lvalue_part:
+  | {"epsilon[]"}
+  | lvalue_subscript {$1}
+  | lvalue_field_access {$1}
+  ;
+
+lvalue_subscript:
+  | LBRACK exp RBRACK
     {
-      let record = $1 in
-      let field = $3 in
-      sprintf "get_record_field[%s, %s]" record field
+      let exp = $2 in
+      sprintf "subscript[%s]" exp
     }
-  | lvalue LBRACK exp RBRACK
+  ;
+
+lvalue_field_access:
+  | DOT ID
     {
-      let array = $1 in
-      let subscript = $3 in
-      sprintf "get_array_subscript[%s, %s]" array subscript
+      let field = $2 in
+      sprintf "field_access[%s]" field
     }
+  ;
 
 %%
