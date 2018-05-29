@@ -2,7 +2,7 @@ open Printf
 
 module List = ListLabels
 
-let test_01 =
+let test_case_from_book_01 =
   let name = "an array type and an array variable" in
   let code =
     " \
@@ -29,7 +29,7 @@ let test_01 =
   in
   (name, code, tokens)
 
-let test_02 =
+let test_case_from_book_02 =
   let name = "arr1 is valid since expression 0 is int = myint" in
   let code =
     " \
@@ -58,7 +58,7 @@ let test_02 =
   in
   (name, code, tokens)
 
-let test_03 =
+let test_case_from_book_03 =
   let name = "a record type and a record variable" in
   let code =
     " \
@@ -99,7 +99,7 @@ let test_03 =
   in
   (name, code, tokens)
 
-let test_04 =
+let test_case_from_book_04 =
   let name = "define a recursive function" in
   let code =
     " \
@@ -131,7 +131,7 @@ let test_04 =
   in
   (name, code, tokens)
 
-let test_09 =
+let test_case_from_book_09 =
   let name = "error : types of then - else differ" in
   let code =
     " \
@@ -147,9 +147,9 @@ let test_09 =
   (* TODO: Type error test case *)
   (name, code, tokens)
 
-let test_queens =
+let test_case_from_book_queens =
   let code =
-    " \n\
+    "\
     /* A program to solve the 8-queens problem */ \n\
  \n\
     let \n\
@@ -196,14 +196,102 @@ let test_queens =
   in
   (code, code, [])
 
-let tests =
-  [ test_01
-  ; test_02
-  ; test_03
-  ; test_04
-  ; test_09
-  ; test_queens
+let test_cases_from_book =
+  [ test_case_from_book_01
+  ; test_case_from_book_02
+  ; test_case_from_book_03
+  ; test_case_from_book_04
+  ; test_case_from_book_09
+  ; test_case_from_book_queens
   ]
+
+let tests_micro_cases =
+  let open Tiger.Parser in
+  [ (
+      let code =
+        "nil"
+      in
+      let tokens =
+        [NIL]
+      in
+      (code, code, tokens)
+    )
+  ; (
+      let code =
+        "5"
+      in
+      let tokens =
+        [INT 5]
+      in
+      (code, code, tokens)
+    )
+  ; (
+      let code =
+        "-5"
+      in
+      let tokens =
+        [MINUS; INT 5]
+      in
+      (code, code, tokens)
+    )
+  ; (
+      let code =
+        "f()"
+      in
+      let tokens =
+        [ID "f"; LPAREN; RPAREN]
+      in
+      (code, code, tokens)
+    )
+  ; (
+      let code =
+        "f(\"a\", 3, foo)"
+      in
+      let tokens =
+        [ID "f"; LPAREN; STRING "a"; COMMA; INT 3; COMMA; ID "foo"; RPAREN]
+      in
+      (code, code, tokens)
+    )
+  ; (
+      let code =
+        "abc.i"
+      in
+      let tokens =
+        [ID "abc"; DOT; ID "i"]
+      in
+      (code, code, tokens)
+    )
+  ; (
+      let code =
+        "abc [5] of nil"
+      in
+      let tokens =
+        [ID "abc"; LBRACK; INT 5; RBRACK; OF; NIL]
+      in
+      (code, code, tokens)
+    )
+  ; (
+      let code =
+        "abc[0]"
+      in
+      let tokens =
+        [ID "abc"; LBRACK; INT 0; RBRACK]
+      in
+      (code, code, tokens)
+    )
+  ; (
+      let code =
+        "abc[0] := foo()"
+      in
+      let tokens =
+        [ID "abc"; LBRACK; INT 0; RBRACK; ASSIGN; ID "foo"; LPAREN; RPAREN]
+      in
+      (code, code, tokens)
+    )
+  ]
+
+let tests =
+  test_cases_from_book @ tests_micro_cases
 
 let () =
   let tokens_of_code code =
