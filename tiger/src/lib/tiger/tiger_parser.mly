@@ -49,6 +49,7 @@
 %token WHILE
 
 /* from lowest precedence */
+%left ELSE
 %nonassoc ASSIGN
 %left OF DO
 %left OR
