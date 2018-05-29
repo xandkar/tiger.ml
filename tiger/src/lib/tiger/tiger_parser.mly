@@ -49,6 +49,7 @@
 %token WHILE
 
 /* from lowest precedence */
+%left OF DO
 %left OR
 %left AND
 %nonassoc EQ NEQ GT LT GE LE
