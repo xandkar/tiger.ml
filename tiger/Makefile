@@ -13,9 +13,7 @@ OCAMLBUILD            := ocamlbuild $(OCAMLBUILD_FLAGS)
  clean \
  test
 
-all:
-	@$(MAKE) -s clean
-	@$(MAKE) -s build
+all: clean
 	@$(MAKE) -s test
 
 build:
@@ -28,5 +26,5 @@ clean:
 	@$(OCAMLBUILD) -clean
 	@rm -rf ./bin
 
-test: bin/exe/tiger_tests
-	@./$<
+test: build
+	@./bin/exe/tiger_tests
