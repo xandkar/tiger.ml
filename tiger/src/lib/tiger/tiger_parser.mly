@@ -127,9 +127,53 @@ exp:
       let fun_args = $3 in
       sprintf "fun_call[%s, %s]" id fun_args
     }
-  | exp op exp
+  | exp PLUS exp
     {
-      sprintf "op[%s %s %s]" $1 $2 $3
+      sprintf "op_plus[%s + %s]" $1 $3
+    }
+  | exp MINUS exp
+    {
+      sprintf "op_minus[%s - %s]" $1 $3
+    }
+  | exp TIMES exp
+    {
+      sprintf "op_times[%s * %s]" $1 $3
+    }
+  | exp DIVIDE exp
+    {
+      sprintf "op_divide[%s / %s]" $1 $3
+    }
+  | exp EQ exp
+    {
+      sprintf "op_eq[%s = %s]" $1 $3
+    }
+  | exp NEQ exp
+    {
+      sprintf "op_neq[%s <> %s]" $1 $3
+    }
+  | exp GT exp
+    {
+      sprintf "op_gt[%s > %s]" $1 $3
+    }
+  | exp LT exp
+    {
+      sprintf "op_lt[%s < %s]" $1 $3
+    }
+  | exp GE exp
+    {
+      sprintf "op_ge[%s >= %s]" $1 $3
+    }
+  | exp LE exp
+    {
+      sprintf "op_le[%s <= %s]" $1 $3
+    }
+  | exp AND exp
+    {
+      sprintf "op_and[%s & %s]" $1 $3
+    }
+  | exp OR exp
+    {
+      sprintf "op_or[%s | %s]" $1 $3
     }
   | IF exp THEN exp ELSE exp
     {
@@ -309,21 +353,6 @@ fun_args:
     {
       sprintf "%s, %s" $1 $3
     }
-  ;
-
-op:
-  | PLUS   {"+"}
-  | MINUS  {"-"}
-  | TIMES  {"*"}
-  | DIVIDE {"/"}
-  | EQ     {"="}
-  | NEQ    {"<>"}
-  | GT     {">"}
-  | LT     {"<"}
-  | GE     {">="}
-  | LE     {"<="}
-  | AND    {"&"}
-  | OR     {"|"}
   ;
 
 lvalue:
