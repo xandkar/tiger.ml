@@ -55,7 +55,6 @@
 %token WHILE
 
 /* from lowest precedence */
-%nonassoc LOWEST
 %nonassoc THEN
 %nonassoc ELSE
 %nonassoc ASSIGN
@@ -313,20 +312,87 @@ rec_fields_bind:
   | ID EQ exp COMMA rec_fields_bind { (Sym.of_string $1, $3, pos ()) :: $5 }
   ;
 
+/* ------------------------------------------------------------------------- */
+/* BEGIN unintuitive rules for decs (which avoid shift/reduce conflicts)     */
+/* ------------------------------------------------------------------------- */
+/*
+  In order to support mutual recursion, we need to group consecutive
+  type and function declarations (see Tiger-book pages 97-99).
+
+  Initially, I defined the rules to do so as:
+
+    decs:
+      | dec      { $1 :: [] }
+      | dec decs { $1 :: $2 }
+      ;
+    dec:
+      | var_dec  { $1 }
+      | typ_decs { Ast.TypeDecs $1 }
+      | fun_decs { Ast.FunDecs $1 }
+      ;
+
+  which, while straightforward (and working, because ocamlyacc defaults to
+  shift in case of a conflict), nonetheless caused a shift/reduce conflict in
+  each of: typ_decs and fun_decs; where the parser did not know whether to
+  shift and stay in (typ|fun_)_dec state or to reduce and get back to dec
+  state.
+
+  Sadly, tagging the rules with a lower precedence (to explicitly favor
+  shifting) - does not help :(
+
+    %nonassoc LOWEST
+    ...
+    dec:
+      | var_dec                { $1 }
+      | typ_decs  %prec LOWEST { Ast.TypeDecs $1 }
+      | fun_decs  %prec LOWEST { Ast.FunDecs $1 }
+      ;
+
+  The difficulty seems to be in the lack of a separator token which would be
+  able to definitively mark the end of each sequence of consecutive
+  (typ_|fun_) declarations.
+
+  Keeping this in mind, another alternative is to manually capture the possible
+  interspersion patterns in the rules like:
+
+    (N * foo) followed-by (N * not-foo)
+
+  for the exception of var_dec, which, since we do not need to group its
+  consecutive sequences, can be reduced upon first sighting.
+*/
+
 decs:
-  | dec      { $1 :: [] }
-  | dec decs { $1 :: $2 }
+  | var_dec   decs_any          { $1 :: $2 }
+  | fun_decs  decs_any_but_fun  { (Ast.FunDecs  $1) :: $2 }
+  | typ_decs  decs_any_but_typ  { (Ast.TypeDecs $1) :: $2 }
   ;
 
-dec:
-  | var_dec                { $1 }
-  | typ_decs  %prec LOWEST { Ast.TypeDecs $1 }
-  | fun_decs  %prec LOWEST { Ast.FunDecs $1 }
+decs_any:
+  |                             { [] }
+  | var_dec   decs_any          { $1 :: $2 }
+  | fun_decs  decs_any_but_fun  { (Ast.FunDecs  $1) :: $2 }
+  | typ_decs  decs_any_but_typ  { (Ast.TypeDecs $1) :: $2 }
   ;
+
+decs_any_but_fun:
+  |                             { [] }
+  | var_dec   decs_any          { $1 :: $2 }
+  | typ_decs  decs_any_but_typ  { (Ast.TypeDecs $1) :: $2 }
+  ;
+
+decs_any_but_typ:
+  |                             { [] }
+  | var_dec   decs_any          { $1 :: $2 }
+  | fun_decs  decs_any_but_fun  { (Ast.FunDecs $1) :: $2 }
+  ;
+
+/*---------------------------------------------------------------------------*/
+/* END unintuitive rules for decs (which avoid shift/reduce conflicts)       */
+/*---------------------------------------------------------------------------*/
 
 typ_decs:
-  | typ_dec                        { $1 :: [] }
-  | typ_dec typ_decs %prec LOWEST  { $1 :: $2 }
+  | typ_dec          { $1 :: [] }
+  | typ_dec typ_decs { $1 :: $2 }
   ;
 
 typ_dec:
@@ -382,8 +448,8 @@ var_dec:
   ;
 
 fun_decs:
-  | fun_dec                       { $1 :: [] }
-  | fun_dec fun_decs %prec LOWEST { $1 :: $2 }
+  | fun_dec          { $1 :: [] }
+  | fun_dec fun_decs { $1 :: $2 }
   ;
 
 fun_dec:
