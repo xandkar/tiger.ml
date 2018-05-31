@@ -1,5 +1,11 @@
 %{
-  open Printf
+  module Ast = Tiger_absyn
+  module Sym = Tiger_symbol
+
+  let pos () =
+    Tiger_position.of_lexing_positions
+      ~pos_start:(Parsing.symbol_start_pos ())
+      ~pos_end:(Parsing.symbol_end_pos ())
 %}
 
 /* Declarations */
@@ -49,340 +55,412 @@
 %token WHILE
 
 /* from lowest precedence */
-%left THEN
-%left ELSE
+%nonassoc LOWEST
+%nonassoc THEN
+%nonassoc ELSE
 %nonassoc ASSIGN
-%left OF DO
+%nonassoc OF DO
 %left OR
 %left AND
 %nonassoc EQ NEQ GT LT GE LE
 %left PLUS MINUS
 %left TIMES DIVIDE
-%nonassoc UMINUS
+%nonassoc HIGHEST
 /* to highest precedence */
 
-%type <string> program
+%type <Tiger_absyn.t> program
 
 %start program
 
 %%
 
-program:
-  | exp EOF
-    {
-      sprintf "program[%s]" $1
-    }
-  ;
+program: exp EOF { $1 };
 
 exp:
   | NIL
-    {
-      "nil[]"
-    }
+    { Ast.NilExp }
   | INT
+    { Ast.IntExp $1 }
+  | MINUS exp %prec HIGHEST
     {
-      sprintf "int[%d]" $1
+      Ast.OpExp
+        { left  = Ast.IntExp 0
+        ; oper  = Ast.MinusOp
+        ; right = $2
+        ; pos   = pos ()
+        }
     }
-  | MINUS exp %prec UMINUS
+  | lvalue LBRACK exp RBRACK OF exp
     {
-      sprintf "negation[%s]" $2
+      match $1 with
+      | Ast.SimpleVar {symbol=typ; _} ->
+          Ast.ArrayExp
+            { typ
+            ; size = $3
+            ; init = $6
+            ; pos  = pos ()
+            }
+      | Ast.SubscriptVar _ | Ast.FieldVar _ ->
+          raise Parse_error
     }
-  | ID LBRACK exp RBRACK OF exp
+  | ID LBRACE rec_fields_bind RBRACE
     {
       let type_id = $1 in
-      let number_of_elements = $3 in
-      let initial_value = $6 in
-      sprintf
-        "array[type[%s], size[%s], val[%s]]"
-        type_id number_of_elements initial_value
-    }
-  | ID LBRACE rec_field_assignments RBRACE
-    {
-      let type_id = $1 in
-      let rec_field_assignments = $3 in
-      sprintf
-        "record[type[%s], rec_field_assignments[%s]]"
-        type_id rec_field_assignments
+      let fields  = $3 in
+      let typ     = Sym.of_string type_id in
+      let pos     = pos () in
+      Ast.RecordExp {fields; typ; pos}
     }
   | lvalue
-    {
-      $1
-    }
+    { Ast.VarExp $1 }
   | lvalue ASSIGN exp
     {
-      sprintf "assign[%s := %s]" $1 $3
+      let var = $1 in
+      let exp = $3 in
+      let pos = pos () in
+      Ast.AssignExp {var; exp; pos}
     }
   | STRING
-    {
-      sprintf "string[%S]" $1
-    }
-  | ID LPAREN RPAREN
-    {
-      let id = $1 in
-      sprintf "fun_call[%s, []]" id
-    }
+    { Ast.StringExp {string = $1; pos = pos ()} }
   | ID LPAREN fun_args RPAREN
     {
-      let id = $1 in
-      let fun_args = $3 in
-      sprintf "fun_call[%s, %s]" id fun_args
+      Ast.CallExp
+        { func = Sym.of_string $1
+        ; args = $3
+        ; pos  = pos ()
+        }
     }
   | exp PLUS exp
     {
-      sprintf "op_plus[%s + %s]" $1 $3
+      Ast.OpExp
+        { left  = $1
+        ; oper  = Ast.PlusOp
+        ; right = $3
+        ; pos   = pos ()
+        }
     }
   | exp MINUS exp
     {
-      sprintf "op_minus[%s - %s]" $1 $3
+      Ast.OpExp
+        { left  = $1
+        ; oper  = Ast.MinusOp
+        ; right = $3
+        ; pos   = pos ()
+        }
     }
   | exp TIMES exp
     {
-      sprintf "op_times[%s * %s]" $1 $3
+      Ast.OpExp
+        { left  = $1
+        ; oper  = Ast.TimesOp
+        ; right = $3
+        ; pos   = pos ()
+        }
     }
   | exp DIVIDE exp
     {
-      sprintf "op_divide[%s / %s]" $1 $3
+      Ast.OpExp
+        { left  = $1
+        ; oper  = Ast.DivideOp
+        ; right = $3
+        ; pos   = pos ()
+        }
     }
   | exp EQ exp
     {
-      sprintf "op_eq[%s = %s]" $1 $3
+      Ast.OpExp
+        { left  = $1
+        ; oper  = Ast.EqOp
+        ; right = $3
+        ; pos   = pos ()
+        }
     }
   | exp NEQ exp
     {
-      sprintf "op_neq[%s <> %s]" $1 $3
+      Ast.OpExp
+        { left  = $1
+        ; oper  = Ast.NeqOp
+        ; right = $3
+        ; pos   = pos ()
+        }
     }
   | exp GT exp
     {
-      sprintf "op_gt[%s > %s]" $1 $3
+      Ast.OpExp
+        { left  = $1
+        ; oper  = Ast.GtOp
+        ; right = $3
+        ; pos   = pos ()
+        }
     }
   | exp LT exp
     {
-      sprintf "op_lt[%s < %s]" $1 $3
+      Ast.OpExp
+        { left  = $1
+        ; oper  = Ast.LtOp
+        ; right = $3
+        ; pos   = pos ()
+        }
     }
   | exp GE exp
     {
-      sprintf "op_ge[%s >= %s]" $1 $3
+      Ast.OpExp
+        { left  = $1
+        ; oper  = Ast.GeOp
+        ; right = $3
+        ; pos   = pos ()
+        }
     }
   | exp LE exp
     {
-      sprintf "op_le[%s <= %s]" $1 $3
+      Ast.OpExp
+        { left  = $1
+        ; oper  = Ast.LeOp
+        ; right = $3
+        ; pos   = pos ()
+        }
     }
   | exp AND exp
     {
-      sprintf "op_and[%s & %s]" $1 $3
+      let e1 = $1 in
+      let e2 = $3 in
+      Ast.IfExp
+        { test  = e1
+        ; then' = e2
+        ; else' = Some (Ast.IntExp 0)
+        ; pos   = pos ()
+        }
     }
   | exp OR exp
     {
-      sprintf "op_or[%s | %s]" $1 $3
+      let e1 = $1 in
+      let e2 = $3 in
+      Ast.IfExp
+        { test  = e1
+        ; then' = Ast.IntExp 1
+        ; else' = Some e2
+        ; pos   = pos ()
+        }
     }
   | IF exp THEN exp ELSE exp
     {
       let e1 = $2 in
       let e2 = $4 in
       let e3 = $6 in
-      sprintf "if_then_else[%s, then[%s], else[%s]]" e1 e2 e3
+      Ast.IfExp
+        { test  = e1
+        ; then' = e2
+        ; else' = Some e3
+        ; pos   = pos ()
+        }
     }
   | IF exp THEN exp
     {
-      sprintf "if_then[%s, then[%s]]" $2 $4
+      let e1 = $2 in
+      let e2 = $4 in
+      Ast.IfExp
+        { test  = e1
+        ; then' = e2
+        ; else' = None
+        ; pos   = pos ()
+        }
     }
   | WHILE exp DO exp
     {
-      sprintf "while[%s, do[%s]]" $2 $4
+      let e1 = $2 in
+      let e2 = $4 in
+      Ast.WhileExp
+        { test = e1
+        ; body = e2
+        ; pos  = pos ()
+        }
     }
   | FOR ID ASSIGN exp TO exp DO exp
     {
-      let id = $2 in
-      let e1 = $4 in
-      let e2 = $6 in
-      let e3 = $8 in
-      sprintf "for[%s := %s, to[%s], do[%s]]" id e1 e2 e3
+      let var = $2 in
+      let e1  = $4 in
+      let e2  = $6 in
+      let e3  = $8 in
+      Ast.ForExp
+        { var    = Sym.of_string var
+        ; escape = ref true
+        ; lo     = e1
+        ; hi     = e2
+        ; body   = e3
+        ; pos    = pos ()
+        }
     }
   | BREAK
-    {
-      "break[]"
-    }
+    { Ast.BreakExp (pos ()) }
   | LPAREN exps RPAREN
-    {
-      sprintf "exps[%s]" $2
-    }
+    { Ast.SeqExp $2 }
   | LET decs IN exps END
     {
       let decs = $2 in
       let exps = $4 in
-      sprintf "let[decs[%s], in[exps[%s]]]" decs exps
-    }
-  | LPAREN RPAREN
-    {
-      (* Perhaps "void"? *)
-      "unit[]"
-    }
-  ;
-
-rec_field_assignments:
-  | ID EQ exp
-    {
-      let id = $1 in
-      let exp = $3 in
-      sprintf "%S = %s" id exp
-    }
-  | ID EQ exp COMMA rec_field_assignments
-    {
-      let id = $1 in
-      let exp = $3 in
-      let rec_field_assignments = $5 in
-      sprintf "%S = %s, %s" id exp rec_field_assignments
+      Ast.LetExp {decs; body = Ast.SeqExp exps; pos = pos ()}
     }
   ;
 
 exps:
-  | exp
-    {
-      let exp = $1 in
-      sprintf "%s" exp
-    }
-  | exp SEMICOLON exps
-    {
-      let exp = $1 in
-      let exps = $3 in
-      sprintf "%s; %s" exp exps
-    }
+  |                    {                 [] }
+  | exp                { ($1, pos ()) :: [] }
+  | exp SEMICOLON exps { ($1, pos ()) :: $3 }
+  ;
+
+rec_fields_bind:
+  | ID EQ exp                       { (Sym.of_string $1, $3, pos ()) :: [] }
+  | ID EQ exp COMMA rec_fields_bind { (Sym.of_string $1, $3, pos ()) :: $5 }
   ;
 
 decs:
-  | dec
-    {
-      sprintf "%s" $1
-    }
-  | dec decs
-    {
-      sprintf "%s %s" $1 $2
-    }
+  | dec      { $1 :: [] }
+  | dec decs { $1 :: $2 }
   ;
 
 dec:
-  /* Tydec */
+  | var_dec                { $1 }
+  | typ_decs  %prec LOWEST { Ast.TypeDecs $1 }
+  | fun_decs  %prec LOWEST { Ast.FunDecs $1 }
+  ;
+
+typ_decs:
+  | typ_dec                        { $1 :: [] }
+  | typ_dec typ_decs %prec LOWEST  { $1 :: $2 }
+  ;
+
+typ_dec:
   | TYPE ID EQ ID
     {
-      let type_id_new = $2 in
-      let type_id_orig = $4 in
-      sprintf "tydec_alias[from[%s], to[%s]]" type_id_new type_id_orig
+      let type_id_left = $2 in
+      let type_id_right = $4 in
+      let pos = pos () in  (* FIXME: rhs id should have its own pos, no? *)
+      Ast.TypeDec
+        { name = Sym.of_string type_id_left
+        ; ty   = Ast.NameTy {symbol = Sym.of_string type_id_right; pos}
+        ; pos
+        }
     }
-  | TYPE ID EQ LBRACE RBRACE
+  | TYPE ID EQ LBRACE type_fields RBRACE
     {
       let type_id = $2 in
-      sprintf "tydec_empty_record[%s]" type_id
-    }
-  | TYPE ID EQ LBRACE tyfields RBRACE
-    {
-      let type_id = $2 in
-      let tyfields = $5 in
-      sprintf "tydec_record[%s, fields[%s]]" type_id tyfields
+      let type_fields = $5 in
+      Ast.TypeDec
+        { name = Sym.of_string type_id
+        ; ty   = Ast.RecordTy type_fields
+        ; pos  = pos ()
+        }
     }
   | TYPE ID EQ ARRAY OF ID
     {
-      let type_id = $2 in
-      let element_type_id = $6 in
-      sprintf "tydec_array[%s, elements_of_type[%s]]" type_id element_type_id
-    }
-
-  /* Vardec */
-  | VAR ID ASSIGN exp
-    {
-      let id = $2 in
-      let exp = $4 in
-      sprintf "vardec[%s, exp[%s]]" id exp
-    }
-  | VAR ID COLON ID ASSIGN exp
-    {
-      let id = $2 in
-      let type_id = $4 in
-      let exp = $6 in
-      sprintf "vardec[%s, type_id[%s], exp[%s]]" id type_id exp
-    }
-
-  /* Fundec */
-  | FUNCTION ID LPAREN RPAREN EQ exp
-    {
-      let id       = $2 in
-      let exp      = $6 in
-      sprintf "fundec[%s, arguments[], exp[%s]]" id exp
-    }
-  | FUNCTION ID LPAREN tyfields RPAREN EQ exp
-    {
-      let id       = $2 in
-      let tyfields = $4 in
-      let exp      = $7 in
-      sprintf "fundec[%s, arguments[%s], exp[%s]]" id tyfields exp
-    }
-  | FUNCTION ID LPAREN tyfields RPAREN COLON ID EQ exp
-    {
-      let id       = $2 in
-      let tyfields = $4 in
-      let type_id  = $7 in
-      let exp      = $9 in
-      sprintf
-        "fundec[%s, tyfields[%s], type_id[%s], exp[%s]]"
-        id tyfields type_id exp
+      let type_id         = Sym.of_string $2 in
+      let element_type_id = Sym.of_string $6 in
+      let pos = pos () in
+      Ast.TypeDec
+        { name = type_id
+        ; ty   = Ast.ArrayTy {symbol = element_type_id; pos}
+        ; pos
+        }
     }
   ;
 
-tyfields:
+var_dec:
+  | VAR ID maybe_type_sig ASSIGN exp
+    {
+      let var_id = Sym.of_string $2 in
+      let maybe_type_sig = $3 in
+      let exp = $5 in
+      let pos = pos () in
+      Ast.VarDec
+        { name   = var_id
+        ; escape = ref true
+        ; typ    = maybe_type_sig
+        ; init   = exp
+        ; pos
+        }
+    }
+  ;
+
+fun_decs:
+  | fun_dec                       { $1 :: [] }
+  | fun_dec fun_decs %prec LOWEST { $1 :: $2 }
+  ;
+
+fun_dec:
+  | FUNCTION ID LPAREN type_fields RPAREN maybe_type_sig EQ exp
+    {
+      let name   = Sym.of_string $2 in
+      let params = $4 in
+      let result = $6 in
+      let body   = $8 in
+      let pos    = pos () in
+      Ast.FunDec {name; params; result; body; pos}
+    }
+  ;
+
+maybe_type_sig:
+  |          { None }
+  | COLON ID { Some (Sym.of_string $2, pos ()) }
+  ;
+
+type_fields:
+  |
+    { [] }
   | ID COLON ID
     {
-      let id_1 = $1 in
-      let id_2 = $3 in
-      sprintf "%s : %s" id_1 id_2
+      let field =
+        Ast.Field
+          { name   = Sym.of_string $1
+          ; escape = ref true
+          ; typ    = Sym.of_string $3
+          ; pos    = pos ()
+          }
+      in
+      field :: []
     }
-  | ID COLON ID COMMA tyfields
+  | ID COLON ID COMMA type_fields
     {
-      let id_1 = $1 in
-      let id_2 = $3 in
-      let tyfield = sprintf "%s : %s" id_1 id_2 in
-      let tyfields = $5 in
-      sprintf "%s, %s" tyfield tyfields
+      let field =
+        Ast.Field
+          { name   = Sym.of_string $1
+          ; escape = ref true
+          ; typ    = Sym.of_string $3
+          ; pos    = pos ()
+          }
+      in
+      field :: $5
     }
   ;
 
 fun_args:
-  | exp
-    {
-      $1
-    }
-  | exp COMMA fun_args
-    {
-      sprintf "%s, %s" $1 $3
-    }
+  |                    {       [] }
+  | exp                { $1 :: [] }
+  | exp COMMA fun_args { $1 :: $3 }
   ;
 
 lvalue:
-  | ID lvalue_part
+  | ID
     {
-      let id = $1 in
-      let part = $2 in
-      sprintf "lvalue[%s, part[%s]]" id part
+      Ast.SimpleVar
+        { symbol = Sym.of_string $1
+        ; pos    = pos ()
+        }
     }
-  ;
-
-lvalue_part:
-  | {"epsilon[]"}
-  | lvalue_subscript {$1}
-  | lvalue_field_access {$1}
-  ;
-
-lvalue_subscript:
-  | LBRACK exp RBRACK
+  | lvalue LBRACK exp RBRACK
     {
-      let exp = $2 in
-      sprintf "subscript[%s]" exp
+      Ast.SubscriptVar
+        { var = $1
+        ; exp = $3
+        ; pos = pos ()
+        }
     }
-  ;
-
-lvalue_field_access:
-  | DOT ID
+  | lvalue DOT ID
     {
-      let field = $2 in
-      sprintf "field_access[%s]" field
+      Ast.FieldVar
+        { var    = $1
+        ; symbol = Sym.of_string $3
+        ; pos    = pos ()
+        }
     }
   ;
 

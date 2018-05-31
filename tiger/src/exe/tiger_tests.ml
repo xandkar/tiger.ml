@@ -313,8 +313,8 @@ let () =
         let L.({lex_curr_p = {pos_lnum=l; pos_bol=b; pos_cnum=c; _}; _}) = lb in
         let msg = sprintf "Syntax error around line: %d, column: %d" l (c - b) in
         Error msg
-    | parsetree ->
-        Ok parsetree
+    | absyn ->
+        Ok (Tiger.Absyn.to_string absyn)
     )
   in
   let bar_sep = String.make 80 '-' in

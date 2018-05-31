@@ -10,7 +10,7 @@ let () =
       Printf.printf
         "Syntax error in file %S, around line: %d, column: %d\n"
         path_to_program_file pos_lnum (pos_cnum - pos_bol)
-  | program ->
-      print_endline program
+  | absyn ->
+      print_endline (Tiger.Absyn.to_string absyn)
   );
   close_in ic;
