@@ -6,6 +6,36 @@ module String = StringLabels
 module Sym = Tiger_symbol
 module Pos = Tiger_position
 
+module Indent : sig
+  type t
+  val init : enabled:bool -> unit:string -> t
+  val next : t -> t
+  val to_string : t -> string
+end = struct
+  type t =
+    { unit   : string option
+    ; levels : int
+    }
+
+  let init ~enabled ~unit =
+    { unit   = if enabled then Some unit else None
+    ; levels = 0
+    }
+
+  let next t =
+    {t with levels = succ t.levels}
+
+  let to_string = function
+    | {unit=None; _} ->
+        ""
+    | {unit=Some u; levels} ->
+        let rec add = function
+          | 0 -> ""
+          | n -> u ^ (add (pred n))
+        in
+        "\n" ^ (add levels)
+end
+
 type oper =
   | PlusOp
   | MinusOp
@@ -145,7 +175,8 @@ and fundec =
 
 type t = exp
 
-let op_to_string = function
+let op_to_string op =
+  match op with
   | PlusOp   -> "PlusOp"
   | MinusOp  -> "MinusOp"
   | TimesOp  -> "TimesOp"
@@ -157,116 +188,162 @@ let op_to_string = function
   | GtOp     -> "GtOp"
   | GeOp     -> "GeOp"
 
-let xs_to_string ?(sep=", ") ~f xs =
-  xs |> List.map ~f |> String.concat ~sep
+let xs_to_string ?(sep=",") ~f ~indent xs =
+  let i = Indent.to_string indent in
+  xs |> List.map ~f:(fun x -> i ^ (f x)) |> String.concat ~sep
 
-let field_to_string (Field {name; typ; _}) =
-  let name = Sym.to_string name in
-  let typ  = Sym.to_string typ in
-  name ^ " : " ^ typ
+let mexp name params ~indent =
+  let params = xs_to_string ~f:(fun x -> x) ~indent params in
+  sprintf "%s[%s]" name params
 
-let fields_to_string fields =
-  xs_to_string fields ~f:field_to_string
-let rec exp_to_string exp =
+let field_to_string ~indent (Field {name; typ; _}) =
+  let name   = Sym.to_string name in
+  let typ    = Sym.to_string typ in
+  let indent = Indent.to_string indent in
+  sprintf "%s%s : %s" indent name typ
+
+let fields_to_string fields ~indent =
+  let fields = List.map fields ~f:(field_to_string ~indent) in
+  mexp "" fields ~indent
+
+let rec exp_to_string ~indent exp =
+  let indent = Indent.next indent in
+  let mexp = mexp ~indent in
   (match exp with
   | NilExp ->
-      "NilExp[]"
+      mexp "NilExp" []
   | IntExp i ->
-      sprintf "IntExp[%d]" i
+      mexp "IntExp" [(string_of_int i)]
   | StringExp {string; _} ->
-      sprintf "StringExp[%S]" string
+      mexp "StringExp" [sprintf "%S" string]
   | CallExp {func; args; _} ->
       let func = Sym.to_string func in
-      let args = xs_to_string args ~f:exp_to_string in
-      sprintf "CallExp[%s, %s]" func args
+      let args = List.map args ~f:(exp_to_string ~indent) in
+      mexp "CallExp" [func; mexp "" args]
   | OpExp {left; oper; right; _} ->
-      let oper = op_to_string oper in
-      let left = exp_to_string left in
-      let right = exp_to_string right in
-      sprintf "OpExp[%s[%s, %s]]" oper left right
+      let op_exp =
+        let indent = Indent.next indent in
+        let oper   = op_to_string oper in
+        let left   = exp_to_string ~indent left in
+        let right  = exp_to_string ~indent right in
+        mexp oper [left; right]
+      in
+      mexp "OpExp" [op_exp]
   | RecordExp {fields; typ; _} ->
       let fields =
-        xs_to_string
-          fields
-          ~f:(fun (s, e, _) -> (Sym.to_string s) ^ " = " ^ (exp_to_string e))
+        List.map fields ~f:(fun (sym, exp, _) ->
+          sprintf
+            "%s = %s"
+            (Sym.to_string sym)
+            (exp_to_string ~indent exp)
+        )
       in
       let typ = Sym.to_string typ in
-      sprintf "RecordExp[%s, %s]" typ fields
+      mexp "RecordExp" [typ; mexp "" fields]
   | SeqExp exps ->
       exps
-      |> List.map ~f:(fun (exp, _pos) -> exp)
-      |> xs_to_string ~f:exp_to_string
-      |> sprintf "SeqExp[%s]"
+      |> List.map ~f:(fun (e, _) -> exp_to_string e ~indent)
+      |> mexp "SeqExp"
   | AssignExp {var; exp; _} ->
-      let var = var_to_string var in
-      let exp = exp_to_string exp in
-      sprintf "AssignExp[%s, %s]" var exp
+      let var = var_to_string ~indent var in
+      let exp = exp_to_string ~indent exp in
+      mexp "AssignExp" [var; exp]
   | IfExp {test; then'; else'; _} ->
-      let test  = exp_to_string test in
-      let then' = exp_to_string then' in
+      let test  = exp_to_string ~indent test in
+      let then' = exp_to_string ~indent then' in
       (match else' with
-      | None   -> sprintf "IfThen[%s, %s]"         test then'
-      | Some e -> sprintf "IfThenElse[%s, %s, %s]" test then' (exp_to_string e)
+      | None ->
+          mexp "IfThen"     [test; then']
+      | Some e ->
+          mexp "IfThenElse" [test; then'; (exp_to_string ~indent e)]
       )
   | WhileExp {test; body; _} ->
-      let test = exp_to_string test in
-      let body = exp_to_string body in
-      sprintf "WhileExp[%s, %s]" test body
+      let test = exp_to_string ~indent test in
+      let body = exp_to_string ~indent body in
+      mexp "WhileExp" [test; body]
   | ForExp {var; lo; hi; body; _} ->
-      sprintf
-        "ForExp[ForVar[%S], ForLo[%s], ForHi[%s], ForBody[%s]]"
-        (Sym.to_string var)
-        (exp_to_string lo)
-        (exp_to_string hi)
-        (exp_to_string body)
+      mexp "ForExp"
+        [ (Sym.to_string var)
+        ; (exp_to_string ~indent lo)
+        ; (exp_to_string ~indent hi)
+        ; (exp_to_string ~indent body)
+        ]
   | BreakExp _ ->
-      "BreakExp[]"
+      mexp "BreakExp" []
   | LetExp {decs; body; _} ->
-      let decs = xs_to_string decs ~f:dec_to_string in
-      let body = exp_to_string body in
-      sprintf "LetExp[LetDecs[%s], LetIn[%s]]" decs body
+      let decs = List.map decs ~f:(dec_to_string ~indent) in
+      let body = exp_to_string ~indent body in
+      mexp "LetExp" [mexp "" decs; body]
   | ArrayExp {typ; size; init; _} ->
       let typ = Sym.to_string typ in
-      let size = exp_to_string size in
-      let init = exp_to_string init in
-      sprintf "ArrayExp[%s, %s, %s]" typ size init
+      let size = exp_to_string ~indent size in
+      let init = exp_to_string ~indent init in
+      mexp "ArrayExp" [typ; size; init]
   | VarExp var ->
-      sprintf "VarExp[%s]" (var_to_string var)
+      mexp "VarExp" [(var_to_string ~indent var)]
   )
-and var_to_string = function
+and var_to_string ~indent var =
+  let indent = Indent.next indent in
+  let mexp = mexp ~indent in
+  match var with
   | SimpleVar {symbol; _} ->
-      sprintf "SimpleVar[%s]" (Sym.to_string symbol)
+      mexp "SimpleVar" [(Sym.to_string symbol)]
   | FieldVar {var; symbol; _} ->
-      sprintf "FieldVar[%s, %s]" (var_to_string var) (Sym.to_string symbol)
+      mexp "FieldVar"
+        [ (var_to_string ~indent var)
+        ; (Sym.to_string symbol)
+        ]
   | SubscriptVar {var; exp; _} ->
-      sprintf "SubscriptVar[%s, %s]" (var_to_string var) (exp_to_string exp)
-and dec_to_string = function
+      mexp "SubscriptVar[%s]"
+        [ (var_to_string ~indent var)
+        ; (exp_to_string ~indent exp)
+        ]
+and dec_to_string ~indent dec =
+  let indent = Indent.next indent in
+  let mexp = mexp ~indent in
+  match dec with
   | VarDec {name; typ; init; _} ->
       let name = Sym.to_string name in
-      let init = exp_to_string init in
+      let init = exp_to_string ~indent init in
       (match typ with
       | Some (typ, _) ->
           let typ = Sym.to_string typ in
-          sprintf "VarDec[%s, %s, %s]" name typ init
+          mexp "VarDec" [name; typ; init]
       | None ->
-          sprintf "VarDec[%s, %s]" name     init
+          mexp "VarDec" [name; init]
       )
   | TypeDecs type_decs ->
-      sprintf "TypeDecs[%s]" (xs_to_string type_decs ~f:type_dec_to_string)
+      mexp "TypeDecs"
+        (List.map type_decs ~f:(type_dec_to_string ~indent))
   | FunDecs fun_decs ->
-      sprintf "FunDecs[%s]" (xs_to_string fun_decs ~f:fun_dec_to_string)
-and fun_dec_to_string = function
+      mexp "FunDecs"
+        (List.map fun_decs ~f:(fun_dec_to_string ~indent))
+and fun_dec_to_string ~indent fun_dec =
+  let indent = Indent.next indent in
+  let mexp = mexp ~indent in
+  match fun_dec with
   | FunDec {name; params; body; _} ->
       let name = Sym.to_string name in
-      let params = fields_to_string params in
-      let body = exp_to_string body in
-      sprintf "FunDec[%s, FunParams[%s], FunBody[%s]]" name params body
-and type_dec_to_string = function
+      let params = fields_to_string ~indent params in
+      let body = exp_to_string ~indent body in
+      mexp "FunDec" [name; params; body]
+and type_dec_to_string ~indent type_dec =
+  let indent = Indent.next indent in
+  let mexp = mexp ~indent in
+  match type_dec with
   | TypeDec {name; ty; _} ->
-      sprintf "TypeDec[%s, %s]" (Sym.to_string name) (ty_to_string ty)
-and ty_to_string = function
-  | NameTy   {symbol; _} -> sprintf "NameTy[%s]" (Sym.to_string symbol)
-  | ArrayTy  {symbol; _} -> sprintf "ArrayTy[%s]" (Sym.to_string symbol)
-  | RecordTy fields      -> sprintf "RecordTy[%s]" (fields_to_string fields)
+      mexp "TypeDec"
+        [ (Sym.to_string name)
+        ; (ty_to_string ~indent ty)
+        ]
+and ty_to_string ~indent ty =
+  let mexp = mexp ~indent in
+  match ty with
+  | NameTy   {symbol; _} -> mexp "NameTy"   [(Sym.to_string symbol)]
+  | ArrayTy  {symbol; _} -> mexp "ArrayTy"  [(Sym.to_string symbol)]
+  | RecordTy fields      -> mexp "RecordTy" [(fields_to_string ~indent fields)]
 
-let to_string = exp_to_string
+let to_string =
+  let unit = String.make 4 ' ' in
+  let indent = Indent.init ~enabled:true ~unit in
+  exp_to_string ~indent

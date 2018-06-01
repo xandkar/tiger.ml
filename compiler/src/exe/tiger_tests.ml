@@ -348,8 +348,8 @@ let () =
 
     printf "%sParsing: " (indent 1);
     (match parsetree_of_code code with
-    | Error errmsg -> printf "%sERROR:%s %s\n" color_on_red   color_off errmsg
-    | Ok parsetree -> printf "%sOK:%s %s\n"    color_on_green color_off parsetree
+    | Error errmsg -> printf "%sERROR:%s %s\n"   color_on_red   color_off errmsg
+    | Ok parsetree -> printf "%sOK:%s\n\n%s\n\n" color_on_green color_off parsetree
     );
 
   );
