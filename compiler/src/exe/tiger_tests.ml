@@ -354,16 +354,16 @@ let tests_micro_cases =
   ; (let code = "abc[0]" in Test.case code ~code ~out_lexing:[ID "abc"; LBRACK; INT 0; RBRACK])
 
   ; (let code = "abc[0] := foo()" in Test.case code ~code
-			~out_lexing:
-				[ID "abc"; LBRACK; INT 0; RBRACK; ASSIGN; ID "foo"; LPAREN; RPAREN])
+      ~out_lexing:
+        [ID "abc"; LBRACK; INT 0; RBRACK; ASSIGN; ID "foo"; LPAREN; RPAREN])
 
   ; (let code = "abc [5] of nil" in Test.case code ~code
-			~out_lexing:
-				[ID "abc"; LBRACK; INT 5; RBRACK; OF; NIL])
+      ~out_lexing:
+        [ID "abc"; LBRACK; INT 5; RBRACK; OF; NIL])
 
   ; (let code = "f(\"a\", 3, foo)" in Test.case code ~code
-			~out_lexing:
-				[ID "f"; LPAREN; STRING "a"; COMMA; INT 3; COMMA; ID "foo"; RPAREN])
+      ~out_lexing:
+        [ID "f"; LPAREN; STRING "a"; COMMA; INT 3; COMMA; ID "foo"; RPAREN])
   ]
 
 let tests =
