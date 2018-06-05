@@ -158,11 +158,11 @@ end = struct
             p_indent 2; p "out: %s" parsing_out; p_ln ();
     );
     p "%s" bar_end; p_ln ();
-    let error_count = !error_count in
-    let clr = (if error_count = 0 then Green else Red) in
-    p "Errors: %s" (color clr (string_of_int error_count)); p_ln ();
+    let failures = !error_count in
+    let clr = (if failures = 0 then Green else Red) in
+    p "Failures: %s" (color clr (string_of_int failures)); p_ln ();
     p "%s" bar_end; p_ln ();
-    exit error_count
+    exit failures
 end
 
 let test_cases_from_book =
