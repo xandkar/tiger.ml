@@ -346,21 +346,24 @@ let test_case_from_book_queens =
 
 let tests_micro_cases =
   let open Tiger.Parser in
-  [ Test.case "nil"    ~code:"nil"    ~out_lexing:[NIL]
-  ; Test.case "5"      ~code:"5"      ~out_lexing:[INT 5]
-  ; Test.case "-5"     ~code:"-5"     ~out_lexing:[MINUS; INT 5]
-  ; Test.case "f()"    ~code:"f()"    ~out_lexing:[ID "f"; LPAREN; RPAREN]
-  ; Test.case "abc.i"  ~code:"abc.i"  ~out_lexing:[ID "abc"; DOT; ID "i"]
-  ; Test.case "abc[0]" ~code:"abc[0]" ~out_lexing:[ID "abc"; LBRACK; INT 0; RBRACK]
+  [ (let code = "nil"    in Test.case code ~code ~out_lexing:[NIL])
+  ; (let code = "5"      in Test.case code ~code ~out_lexing:[INT 5])
+  ; (let code = "-5"     in Test.case code ~code ~out_lexing:[MINUS; INT 5])
+  ; (let code = "f()"    in Test.case code ~code ~out_lexing:[ID "f"; LPAREN; RPAREN])
+  ; (let code = "abc.i"  in Test.case code ~code ~out_lexing:[ID "abc"; DOT; ID "i"])
+  ; (let code = "abc[0]" in Test.case code ~code ~out_lexing:[ID "abc"; LBRACK; INT 0; RBRACK])
 
-  ; Test.case "abc[0] := foo()" ~code:"abc[0] := foo()" ~out_lexing:
-      [ID "abc"; LBRACK; INT 0; RBRACK; ASSIGN; ID "foo"; LPAREN; RPAREN]
+  ; (let code = "abc[0] := foo()" in Test.case code ~code
+			~out_lexing:
+				[ID "abc"; LBRACK; INT 0; RBRACK; ASSIGN; ID "foo"; LPAREN; RPAREN])
 
-  ; Test.case "abc [5] of nil" ~code:"abc [5] of nil" ~out_lexing:
-      [ID "abc"; LBRACK; INT 5; RBRACK; OF; NIL]
+  ; (let code = "abc [5] of nil" in Test.case code ~code
+			~out_lexing:
+				[ID "abc"; LBRACK; INT 5; RBRACK; OF; NIL])
 
-  ; Test.case "f(\"a\", 3, foo)" ~code:"f(\"a\", 3, foo)" ~out_lexing:
-      [ID "f"; LPAREN; STRING "a"; COMMA; INT 3; COMMA; ID "foo"; RPAREN]
+  ; (let code = "f(\"a\", 3, foo)" in Test.case code ~code
+			~out_lexing:
+				[ID "f"; LPAREN; STRING "a"; COMMA; INT 3; COMMA; ID "foo"; RPAREN])
   ]
 
 let tests =
