@@ -1,6 +1,19 @@
 Tiger.ml
 ========
 
+Implementation Notes
+--------------------
+
+### Parser
+
+#### shift/reduce conflicts
+##### grouping consecutive declarations
+##### lval
+
+### AST
+
+#### print as M-exp
+
 Project Plan
 ------------
 
