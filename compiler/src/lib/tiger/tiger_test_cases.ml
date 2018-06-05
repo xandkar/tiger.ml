@@ -1,171 +1,6 @@
-(*
- * code |> pass_a_exe |> pass_a_out |> ... |> pass_z_exe |> pass_z_out
- *
- * pass a:
- *  exe: OK
- *  out: n/a
- * pass b:
- *  exe: OK
- *  out: OK
- * pass c:
- *  exe: OK
- *  out: ERROR
- * ...
- *
- * name     | pass a | ... | pass z
- * ---------+--------+-----+--------
- * exe foo  | OK     | ... | OK
- * out foo  | OK     | ... | ERROR
- *
- * *)
+module Test = Tiger_test
 
-open Printf
-
-module List = ListLabels
-module String = StringLabels
-
-module Option : sig
-  type 'a t = 'a option
-
-  val map : 'a t -> ('a -> 'b) -> 'b t
-end = struct
-  type 'a t = 'a option
-
-  let map t f =
-    match t with
-    | None   -> None
-    | Some x -> Some (f x)
-end
-
-module Test : sig
-  type t
-
-  val case
-    :  ?out_lexing  : Tiger.Parser.token list
-    -> ?out_parsing : Tiger.Absyn.t
-    -> code         : string
-    -> string
-    -> t
-
-  val run : t list -> unit
-end = struct
-  type t =
-    { name        : string
-    ; code        : string
-    ; out_lexing  : (Tiger.Parser.token list) option
-    ; out_parsing : Tiger.Absyn.t option
-    }
-
-  type color =
-    | Red
-    | Yellow
-    | Green
-
-
-  let color_to_ansi_code = function
-    | Red    -> "\027[0;31m"
-    | Yellow -> "\027[0;33m"
-    | Green  -> "\027[0;32m"
-
-  let color color string =
-    let color_on  = color_to_ansi_code color in
-    let color_off = "\027[0m" in
-    sprintf "%s%s%s" color_on string color_off
-
-  let case ?(out_lexing) ?(out_parsing) ~code name =
-    { name
-    ; code
-    ; out_lexing
-    ; out_parsing
-    }
-
-  let bar_sep = String.make 80 '-'
-  let bar_end = String.make 80 '='
-
-  let indent =
-    let unit_spaces = 2 in
-    fun n ->
-      String.make (n * unit_spaces) ' '
-
-  let pass_lexing code : (Tiger.Parser.token list, string) result =
-    let lexbuf = Lexing.from_string code in
-    let rec tokens () =
-      let token = Tiger.Lexer.token lexbuf in
-      (* Avoiding fragile pattern-matching *)
-      if token = Tiger.Parser.EOF then [] else token :: tokens ()
-    in
-    match tokens () with
-    | exception e -> Error (Printexc.to_string e)
-    | tokens      -> Ok tokens
-
-  let pass_parsing code =
-    let lb = Lexing.from_string code in
-    match Tiger.Parser.program Tiger.Lexer.token lb with
-    | exception Parsing.Parse_error ->
-        let module L = Lexing in
-        let L.({lex_curr_p = {pos_lnum=l; pos_bol=b; pos_cnum=c; _}; _}) = lb in
-        let msg = sprintf "Syntax error around line: %d, column: %d" l (c - b) in
-        Error msg
-    | ast ->
-        Ok ast
-
-  let s = sprintf
-  let p = printf
-  let p_ln = print_newline
-  let p_indent n = p "%s" (indent n)
-
-  let run tests =
-    let error_count = ref 0 in
-    let run_pass f input output : string * string =
-      match f input with
-      | exception e ->
-          incr error_count;
-          ( s "%s: %s" (color Red "ERROR") (Printexc.to_string e)
-          , "n/a"
-          )
-      | Error msg ->
-          incr error_count;
-          ( s "%s: %s" (color Red "ERROR") msg
-          , "n/a"
-          )
-      | Ok produced ->
-          let exe = s "%s" (color Green "OK") in
-          let out =
-            match
-              Option.map output (fun expected -> expected = produced)
-            with
-            | None ->
-                s "%s" (color Yellow "n/a")
-            | Some true ->
-                s "%s" (color Green "OK")
-            | Some false ->
-                incr error_count;
-                s "%s" (color Red "ERROR")
-          in
-          (exe, out)
-    in
-    List.iter tests ~f:(
-      fun {name; code; out_lexing; out_parsing} ->
-        let ( lexing_exe,  lexing_out) = run_pass pass_lexing  code out_lexing in
-        let (parsing_exe, parsing_out) = run_pass pass_parsing code out_parsing in
-        p "%s" bar_sep; p_ln ();
-        p "Test: %S" name; p_ln ();
-          p_indent 1; p "Lexing:"; p_ln ();
-            p_indent 2; p "exe: %s" lexing_exe; p_ln ();
-            p_indent 2; p "out: %s" lexing_out; p_ln ();
-          p_indent 1; p "Parsing:"; p_ln ();
-            p_indent 2; p "exe: %s" parsing_exe; p_ln ();
-            p_indent 2; p "out: %s" parsing_out; p_ln ();
-    );
-    p "%s" bar_end; p_ln ();
-    let failures = !error_count in
-    let clr = (if failures = 0 then Green else Red) in
-    p "Failures: %s" (color clr (string_of_int failures)); p_ln ();
-    p "%s" bar_end; p_ln ();
-    exit failures
-end
-
-let test_cases_from_book =
+let book =
   [ Test.case
       "Book test 1: an array type and an array variable"
       ~code:
@@ -180,7 +15,7 @@ let test_cases_from_book =
         end \
         "
       ~out_lexing:(
-        let open Tiger.Parser in
+        let open Tiger_parser in
         [ LET;
             TYPE; ID "arrtype"; EQ; ARRAY; OF; ID "int";
             VAR; ID "arr1"; COLON; ID "arrtype"; ASSIGN;
@@ -205,7 +40,7 @@ let test_cases_from_book =
         end \
         "
     ~out_lexing:(
-      let open Tiger.Parser in
+      let open Tiger_parser in
       [ LET;
           TYPE; ID "myint"; EQ; ID "int";
           TYPE; ID "arrtype"; EQ; ARRAY; OF; ID "myint";
@@ -237,7 +72,7 @@ let test_cases_from_book =
         end \
         "
       ~out_lexing:(
-        let open Tiger.Parser in
+        let open Tiger_parser in
         [ LET;
             TYPE; ID "rectype"; EQ;
               LBRACE; ID "name"; COLON; ID "string";
@@ -272,7 +107,7 @@ let test_cases_from_book =
         end \
         "
       ~out_lexing:(
-        let open Tiger.Parser in
+        let open Tiger_parser in
         [ LET;
             FUNCTION; ID "nfactor"; LPAREN; ID "n"; COLON; ID "int"; RPAREN; COLON; ID "int"; EQ;
               IF; ID "n"; EQ; INT 0;
@@ -291,7 +126,7 @@ let test_cases_from_book =
         if (5>4) then 13 else  \" \" \
         "
       ~out_lexing:(
-        let open Tiger.Parser in
+        let open Tiger_parser in
         [ IF; LPAREN; INT 5; GT; INT 4; RPAREN; THEN; INT 13; ELSE; STRING " "
         ]
       )
@@ -348,8 +183,8 @@ let test_case_from_book_queens =
   (code, code, [])
 *)
 
-let tests_micro_cases =
-  let open Tiger.Parser in
+let micro =
+  let open Tiger_parser in
   [ (let code = "nil"    in Test.case code ~code ~out_lexing:[NIL])
   ; (let code = "5"      in Test.case code ~code ~out_lexing:[INT 5])
   ; (let code = "-5"     in Test.case code ~code ~out_lexing:[MINUS; INT 5])
@@ -370,8 +205,5 @@ let tests_micro_cases =
         [ID "f"; LPAREN; STRING "a"; COMMA; INT 3; COMMA; ID "foo"; RPAREN])
   ]
 
-let tests =
-  test_cases_from_book  @ tests_micro_cases 
-
-let () =
-  Test.run tests
+let all =
+  book @ micro 

@@ -1,7 +1,7 @@
 MAKEFLAGS := --no-builtin-rules
 
 EXE_TYPE              := byte  # byte | native
-EXECUTABLES           := tigerc tiger_tests
+EXECUTABLES           := tigerc tigert
 OCAMLBUILD_FLAGS_DIRS := -I src/exe -I src/lib/tiger
 OCAMLBUILD_FLAGS_COMP := -cflags '-w A'
 OCAMLBUILD_FLAGS_YACC := -yaccflag '-v'
@@ -32,4 +32,4 @@ clean:
 	@rm -rf ./bin
 
 test: build
-	@./bin/exe/tiger_tests
+	@./bin/exe/tigert
