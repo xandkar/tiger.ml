@@ -19,3 +19,15 @@ let of_lexing_positions
     ; end_char   = ecnum - ebol
     ; end_line   = eline
     }
+
+let to_string
+  { file
+  ; start_char
+  ; start_line
+  ; end_char
+  ; end_line
+  }
+=
+  Printf.sprintf
+    "file: %S, between (line/char) %d/%d and %d/%d"
+    file start_line start_char end_line end_char

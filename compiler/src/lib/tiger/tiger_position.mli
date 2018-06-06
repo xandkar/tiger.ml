@@ -10,3 +10,5 @@ val of_lexing_positions
   :  pos_start:Lexing.position
   -> pos_end:Lexing.position
   -> t
+
+val to_string : t -> string

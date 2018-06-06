@@ -1,15 +1,17 @@
+let lexbuf_set_filename lb filename : unit =
+  let Lexing.({lex_start_p; lex_curr_p}) = lb in
+  lb.Lexing.lex_start_p <- {lex_start_p with Lexing.pos_fname = filename};
+  lb.Lexing.lex_curr_p  <- {lex_curr_p  with Lexing.pos_fname = filename}
+
 let () =
   let path_to_program_file = Sys.argv.(1) in
   let ic = open_in path_to_program_file in
   let lexbuf = Lexing.from_channel ic in
+  lexbuf_set_filename lexbuf path_to_program_file;
   (match Tiger.Parser.program Tiger.Lexer.token lexbuf with
-  | exception Parsing.Parse_error ->
-      let
-        Lexing.({lex_curr_p = {pos_lnum; pos_bol; pos_cnum; _}; _}) = lexbuf
-      in
-      Printf.printf
-        "Syntax error in file %S, around line: %d, column: %d\n"
-        path_to_program_file pos_lnum (pos_cnum - pos_bol)
+  | exception Tiger.Error.T msg ->
+      Printf.eprintf "%s\n" msg;
+      exit 1;
   | absyn ->
       print_endline (Tiger.Absyn.to_string absyn)
   );
