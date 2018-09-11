@@ -10,4 +10,6 @@ module type S = sig
   val member : ('k, 'v) t -> k:'k -> bool
 
   val to_dot : ('k, 'v) t -> k_to_string:('k -> string) -> string
+
+  val of_list : ('k * 'v) list -> ('k, 'v) t
 end

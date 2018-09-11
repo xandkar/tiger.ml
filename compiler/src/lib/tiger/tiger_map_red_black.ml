@@ -99,3 +99,6 @@ let to_dot t ~k_to_string =
     )
   in
   "digraph G {" ^ dot_edges_and_nodes ^ "}"
+
+let of_list pairs =
+  List.fold_left pairs ~init:empty ~f:(fun t (k, v) -> set t ~k ~v)
