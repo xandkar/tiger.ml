@@ -75,7 +75,7 @@
 
 program:
   | exp EOF { $1 }
-  | error {Tiger_error.exn ~pos:(pos ()) ~msg:"invalid syntax"}
+  | error {Tiger_error.exn "invalid syntax" ~pos:(pos ())}
   ;
 
 exp:
