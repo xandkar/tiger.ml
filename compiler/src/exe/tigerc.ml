@@ -1,5 +1,5 @@
 let lexbuf_set_filename lb filename : unit =
-  let Lexing.({lex_start_p; lex_curr_p}) = lb in
+  let Lexing.({lex_start_p; lex_curr_p; _}) = lb in
   lb.Lexing.lex_start_p <- {lex_start_p with Lexing.pos_fname = filename};
   lb.Lexing.lex_curr_p  <- {lex_curr_p  with Lexing.pos_fname = filename}
 
