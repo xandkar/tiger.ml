@@ -175,6 +175,21 @@ and fundec =
 
 type t = exp
 
+(* For printing error messages *)
+let op_show op =
+  match op with
+  | PlusOp   -> "+"
+  | MinusOp  -> "-"
+  | TimesOp  -> "*"
+  | DivideOp -> "/"
+  | EqOp     -> "="
+  | NeqOp    -> "<>"
+  | LtOp     -> "<"
+  | LeOp     -> "<="
+  | GtOp     -> ">"
+  | GeOp     -> ">="
+
+(* For printing AST *)
 let op_to_string op =
   match op with
   | PlusOp   -> "PlusOp"

@@ -9,8 +9,8 @@ let () =
   let lexbuf = Lexing.from_channel ic in
   lexbuf_set_filename lexbuf path_to_program_file;
   (match Tiger.Parser.program Tiger.Lexer.token lexbuf with
-  | exception Tiger.Error.T msg ->
-      Printf.eprintf "%s\n" msg;
+  | exception Tiger.Error.T error ->
+      Printf.eprintf "%s\n" (Tiger.Error.to_string error);
       exit 1;
   | absyn ->
       print_endline (Tiger.Absyn.to_string absyn)

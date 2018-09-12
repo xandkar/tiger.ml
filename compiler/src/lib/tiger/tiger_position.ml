@@ -29,5 +29,5 @@ let to_string
   }
 =
   Printf.sprintf
-    "file: %S, between (line/char) %d/%d and %d/%d"
+    "file: %S, between (line,char) %d,%d and %d,%d"
     file start_line start_char end_line end_char

@@ -138,3 +138,5 @@ and fundec =
 type t = exp
 
 val to_string : t -> string
+
+val op_show : oper -> string

@@ -1,5 +1,6 @@
 %{
   module Ast = Tiger_absyn
+  module Err = Tiger_error
   module Sym = Tiger_symbol
 
   let pos () =
@@ -75,7 +76,7 @@
 
 program:
   | exp EOF { $1 }
-  | error {Tiger_error.exn "invalid syntax" ~pos:(pos ())}
+  | error {Err.raise (Err.Invalid_syntax (pos ()))}
   ;
 
 exp:
