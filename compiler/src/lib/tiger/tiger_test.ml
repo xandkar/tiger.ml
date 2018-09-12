@@ -1,4 +1,7 @@
-(*
+(* "exe" is for status of execution (whether any exceptions were raised)
+ * "out" is for status of output comparison (whether what was outputted is
+ *       what was expected)
+ *
  * code |> pass_a_exe |> pass_a_out |> ... |> pass_z_exe |> pass_z_out
  *
  * pass a:
@@ -42,6 +45,7 @@ type t =
   ; code        : string
   ; out_lexing  : (Tiger_parser.token list) option
   ; out_parsing : Tiger_absyn.t option
+  ; is_error_expected : (Tiger_error.t -> bool)
   }
 
 type color =
@@ -60,11 +64,18 @@ let color color string =
   let color_off = "\027[0m" in
   sprintf "%s%s%s" color_on string color_off
 
-let case ?(out_lexing) ?(out_parsing) ~code name =
+let case
+    ?(out_lexing)
+    ?(out_parsing)
+    ?(is_error_expected=(fun _ -> false))
+    ~code
+    name
+  =
   { name
   ; code
   ; out_lexing
   ; out_parsing
+  ; is_error_expected
   }
 
 let bar_sep = String.make 80 '-'
@@ -86,7 +97,7 @@ let pass_lexing code : (Tiger_parser.token list, string) result =
   | exception e -> Error (Printexc.to_string e)
   | tokens      -> Ok tokens
 
-let pass_parsing code =
+let pass_parsing code : (Tiger_absyn.t, string) result =
   let lb = Lexing.from_string code in
   match Tiger_parser.program Tiger_lexer.token lb with
   | exception Parsing.Parse_error ->
@@ -104,46 +115,74 @@ let p_indent n = p "%s" (indent n)
 
 let run tests =
   let error_count = ref 0 in
-  let run_pass f input output : string * string =
+  let run_pass ~f ~input ~expect_output ~is_error_expected =
+    let output_status = "n/a" in
+    let output_value  = None in
     match f input with
     | exception e ->
-        incr error_count;
-        ( s "%s: %s" (color Red "ERROR") (Printexc.to_string e)
-        , "n/a"
+        let c, e =
+          (match e with
+          | Tiger_error.T e when is_error_expected e ->
+              (Green, Tiger_error.to_string e)
+          | Tiger_error.T e ->
+              incr error_count;
+              (Red, Tiger_error.to_string e)
+          | e ->
+              incr error_count;
+              (Red, Printexc.to_string e)
+          )
+        in
+        ( s "%s: %s" (color c "ERROR") e
+        , output_status
+        , output_value
         )
     | Error msg ->
         incr error_count;
         ( s "%s: %s" (color Red "ERROR") msg
-        , "n/a"
+        , output_status
+        , output_value
         )
     | Ok produced ->
-        let exe = s "%s" (color Green "OK") in
-        let out =
+        let execution_status = s "%s" (color Green "OK") in
+        let output_status =
           match
-            Option.map output (fun expected -> expected = produced)
+            Option.map expect_output (fun expected -> expected = produced)
           with
           | None ->
-              s "%s" (color Yellow "n/a")
+              s "%s" (color Yellow "expected output not provided")
           | Some true ->
               s "%s" (color Green "OK")
           | Some false ->
               incr error_count;
               s "%s" (color Red "ERROR")
         in
-        (exe, out)
+        let output_value = Some produced in
+        (execution_status, output_status, output_value)
   in
   List.iter tests ~f:(
-    fun {name; code; out_lexing; out_parsing} ->
-      let ( lexing_exe,  lexing_out) = run_pass pass_lexing  code out_lexing in
-      let (parsing_exe, parsing_out) = run_pass pass_parsing code out_parsing in
+    fun {name; code; out_lexing; out_parsing; is_error_expected} ->
+      let (stat_lex_exe, stat_lex_out_cmp, _) =
+        run_pass
+          ~f:pass_lexing
+          ~input:code
+          ~expect_output:out_lexing
+          ~is_error_expected
+      in
+      let (stat_pars_exe, stat_pars_out_cmp, _) =
+        run_pass
+          ~f:pass_parsing
+          ~input:code
+          ~expect_output:out_parsing
+          ~is_error_expected
+      in
       p "%s" bar_sep; p_ln ();
       p "Test: %S" name; p_ln ();
         p_indent 1; p "Lexing:"; p_ln ();
-          p_indent 2; p "exe: %s" lexing_exe; p_ln ();
-          p_indent 2; p "out: %s" lexing_out; p_ln ();
+          p_indent 2; p "exe: %s" stat_lex_exe    ; p_ln ();
+          p_indent 2; p "out: %s" stat_lex_out_cmp; p_ln ();
         p_indent 1; p "Parsing:"; p_ln ();
-          p_indent 2; p "exe: %s" parsing_exe; p_ln ();
-          p_indent 2; p "out: %s" parsing_out; p_ln ();
+          p_indent 2; p "exe: %s" stat_pars_exe    ; p_ln ();
+          p_indent 2; p "out: %s" stat_pars_out_cmp; p_ln ();
   );
   p "%s" bar_end; p_ln ();
   let failures = !error_count in
