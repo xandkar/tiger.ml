@@ -97,6 +97,18 @@ let if_record t ~f ~otherwise =
   | Array  _ ->
       otherwise ()
 
+let if_array t ~f ~otherwise =
+  match t with
+  | Array {ty=t; _} ->
+      f t
+  | Unit
+  | Int
+  | String
+  | Name _
+  | Nil
+  | Record _ ->
+      otherwise ()
+
 let to_string = function
   | Unit               -> "unit"
   | Nil                -> "nil"

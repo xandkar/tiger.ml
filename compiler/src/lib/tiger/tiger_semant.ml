@@ -134,8 +134,13 @@ end = struct
               )
             )
             ~otherwise:(fun () -> E.raise (E.Exp_not_a_record {ty; pos}))
-      | A.SubscriptVar {var=_; exp=_; pos=_} ->
-          unimplemented ()
+      | A.SubscriptVar {var; exp; pos} ->
+          let {exp=_; ty} = trvar var in
+          check_int (trexp exp) ~pos;
+          Type.if_array
+            ty
+            ~f:(fun ty_elements -> return ty_elements)
+            ~otherwise:(fun () -> E.raise (E.Exp_not_an_array {ty; pos}))
       )
     and trop oper ~left ~right ~pos =
       let expty_left  = trexp left in

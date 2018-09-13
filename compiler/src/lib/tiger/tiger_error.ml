@@ -11,6 +11,7 @@ type t =
   | Id_not_a_function of {id    : Sym.t; pos : Pos.t}
   | No_such_field_in_record of {field : Sym.t; record : Typ.t; pos : Pos.t}
   | Exp_not_a_record  of {ty    : Typ.t; pos : Pos.t}
+  | Exp_not_an_array  of {ty    : Typ.t; pos : Pos.t}
   | Wrong_type of
       { expected : Typ.t
       ; given    : Typ.t
@@ -82,7 +83,11 @@ let to_string =
       s "No field %S in record %S in %s"
         (Sym.to_string field) (Typ.to_string record) (Pos.to_string pos)
   | Exp_not_a_record {ty; pos} ->
-      s ( "This expression has type %S, it is not a record, it cannot be"
+      s ( "The expression of type %S is not a record, it cannot be"
+        ^^"accessed in %s")
+        (Typ.to_string ty) (Pos.to_string pos)
+  | Exp_not_an_array {ty; pos} ->
+      s ( "The expression of type %S is not an array, it cannot be"
         ^^"accessed in %s")
         (Typ.to_string ty) (Pos.to_string pos)
   | Wrong_type {expected; given; pos} ->
@@ -144,6 +149,7 @@ let is_unknown_id t =
   | Id_not_a_function _
   | No_such_field_in_record _
   | Exp_not_a_record _
+  | Exp_not_an_array _
   | Wrong_type _
   | Wrong_type_of_expression_in_var_dec _
   | Wrong_type_used_as_record _

@@ -31,6 +31,7 @@ val is_record : t -> bool
 val is_name   : t -> bool
 
 val if_record : t -> f:(record_fields -> 'a) -> otherwise:(unit -> 'a) -> 'a
+val if_array  : t -> f:(t -> 'a)             -> otherwise:(unit -> 'a) -> 'a
 
 val new_record : record_fields -> t
 val new_array  : t -> t
