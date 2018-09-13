@@ -7,7 +7,6 @@ OCAMLBUILD_FLAGS_COMP := -cflags '-w A'
 OCAMLBUILD_FLAGS_YACC := -yaccflag '-v'
 OCAMLBUILD            := \
   ocamlbuild \
-    -classic-display \
     $(OCAMLBUILD_FLAGS_COMP) \
     $(OCAMLBUILD_FLAGS_DIRS) \
     $(OCAMLBUILD_FLAGS_YACC)
