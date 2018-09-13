@@ -69,14 +69,14 @@ let status indicator info =
   | "" -> indicator
   | _  -> sprintf "%s: %s" indicator info
 
-let status_ok ?(info="") () =
-  status (color Green "OK") info
+let status_pass ?(info="") () =
+  status (color Green "Pass") info
 
-let status_error ?(info="") () =
-  status (color Red "ERROR") info
+let status_fail ?(info="") () =
+  status (color Red "Fail") info
 
-let status_warn ?(info="") () =
-  status (color Yellow "WARN") info
+let status_skip ?(info="") () =
+  status (color Yellow "Skip") info
 
 let case
     ?(out_lexing)
@@ -144,13 +144,13 @@ let run tests =
         let execution_status =
           (match e with
           | Tiger_error.T e when is_error_expected e ->
-              status_ok () ~info:(Tiger_error.to_string e)
+              status_pass () ~info:(Tiger_error.to_string e)
           | Tiger_error.T e ->
               incr error_count;
-              status_error () ~info:(Tiger_error.to_string e)
+              status_fail () ~info:(Tiger_error.to_string e)
           | e ->
               incr error_count;
-              status_error () ~info:(Printexc.to_string e)
+              status_fail () ~info:(Printexc.to_string e)
           )
         in
         ( execution_status
@@ -159,23 +159,23 @@ let run tests =
         )
     | Error info ->
         incr error_count;
-        ( status_error ~info ()
+        ( status_fail ~info ()
         , output_status
         , output_value
         )
     | Ok produced ->
-        let execution_status = status_ok () in
+        let execution_status = status_pass () in
         let output_status =
           match
             Option.map expect_output (fun expected -> expected = produced)
           with
           | None ->
-              status_warn () ~info:"expected output not provided"
+              status_skip () ~info:"expected output not provided"
           | Some true ->
-              status_ok ()
+              status_pass ()
           | Some false ->
               incr error_count;
-              status_error ()
+              status_fail ()
         in
         let output_value = Some produced in
         (execution_status, output_status, output_value)
