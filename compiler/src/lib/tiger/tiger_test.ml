@@ -108,6 +108,13 @@ let pass_parsing code : (Tiger_absyn.t, string) result =
   | ast ->
       Ok ast
 
+let pass_semant (absyn_opt : Tiger_absyn.t option) : (unit, string) result =
+  match absyn_opt with
+  | None ->
+      Error "AST not provided"
+  | Some absyn ->
+      Ok (Tiger_semant.transProg absyn)
+
 let s = sprintf
 let p = printf
 let p_ln = print_newline
@@ -168,11 +175,18 @@ let run tests =
           ~expect_output:out_lexing
           ~is_error_expected
       in
-      let (stat_pars_exe, stat_pars_out_cmp, _) =
+      let (stat_pars_exe, stat_pars_out_cmp, absyn_opt) =
         run_pass
           ~f:pass_parsing
           ~input:code
           ~expect_output:out_parsing
+          ~is_error_expected
+      in
+      let (stat_semant_exe, stat_semant_out_cmp, _) =
+        run_pass
+          ~f:pass_semant
+          ~input:absyn_opt
+          ~expect_output:(Some ())
           ~is_error_expected
       in
       p "%s" bar_sep; p_ln ();
@@ -183,6 +197,9 @@ let run tests =
         p_indent 1; p "Parsing:"; p_ln ();
           p_indent 2; p "exe: %s" stat_pars_exe    ; p_ln ();
           p_indent 2; p "out: %s" stat_pars_out_cmp; p_ln ();
+        p_indent 1; p "Semantic Analysis:"; p_ln ();
+          p_indent 2; p "exe: %s" stat_semant_exe    ; p_ln ();
+          p_indent 2; p "out: %s" stat_semant_out_cmp; p_ln ();
   );
   p "%s" bar_end; p_ln ();
   let failures = !error_count in
