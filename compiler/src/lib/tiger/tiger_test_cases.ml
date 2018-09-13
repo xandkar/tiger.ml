@@ -130,58 +130,54 @@ let book =
         [ IF; LPAREN; INT 5; GT; INT 4; RPAREN; THEN; INT 13; ELSE; STRING " "
         ]
       )
-  ]
-
-(*
-let test_case_from_book_queens =
-  let code =
-    "\
-    /* A program to solve the 8-queens problem */ \n\
- \n\
-    let \n\
-      var N := 8 \n\
- \n\
-      type intArray = array of int \n\
- \n\
-      var row := intArray [ N ] of 0 \n\
-      var col := intArray [ N ] of 0 \n\
-      var diag1 := intArray [N+N-1] of 0 \n\
-      var diag2 := intArray [N+N-1] of 0 \n\
- \n\
-      function printboard() = ( \n\
-        for i := 0 to N-1 do ( \n\
-          for j := 0 to N-1 do print(if col[i]=j then \" O\" else \" .\"); \n\
-          print(\"\n\") \n\
-        ); \n\
-        print(\"\n\") \n\
-      ) \n\
- \n\
-      function try(c:int) = ( \n\
-        /*  for i:= 0 to c do print(\".\"); print(\"\n\"); flush();*/ \n\
-        if c=N \n\
-        then printboard() \n\
-        else \n\
-          for r := 0 to N-1 \n\
-          do \n\
-            if row[r]=0 & diag1[r+c]=0 & diag2[r+7-c]=0 \n\
-            then ( \n\
-              row[r]       := 1; \n\
-              diag1[r+c]   := 1; \n\
-              diag2[r+7-c] := 1; \n\
-              col[c]       := r; \n\
-              try(c+1); \n\
-              row[r]       := 0; \n\
-              diag1[r+c]   := 0; \n\
-              diag2[r+7-c] := 0 \n\
+  ; Test.case
+    "Book test: 8-queens"
+    ~code:
+          "\
+          /* A program to solve the 8-queens problem */ \n\
+       \n\
+          let \n\
+            var N := 8 \n\
+       \n\
+            type intArray = array of int \n\
+       \n\
+            var row := intArray [ N ] of 0 \n\
+            var col := intArray [ N ] of 0 \n\
+            var diag1 := intArray [N+N-1] of 0 \n\
+            var diag2 := intArray [N+N-1] of 0 \n\
+       \n\
+            function printboard() = ( \n\
+              for i := 0 to N-1 do ( \n\
+                for j := 0 to N-1 do print(if col[i]=j then \" O\" else \" .\"); \n\
+                print(\"\n\") \n\
+              ); \n\
+              print(\"\n\") \n\
             ) \n\
-      ) \n\
-    in \n\
-      try(0) \n\
-    end \n\
-    "
-  in
-  (code, code, [])
-*)
+       \n\
+            function try(c:int) = ( \n\
+              /*  for i:= 0 to c do print(\".\"); print(\"\n\"); flush();*/ \n\
+              if c=N \n\
+              then printboard() \n\
+              else \n\
+                for r := 0 to N-1 \n\
+                do \n\
+                  if row[r]=0 & diag1[r+c]=0 & diag2[r+7-c]=0 \n\
+                  then ( \n\
+                    row[r]       := 1; \n\
+                    diag1[r+c]   := 1; \n\
+                    diag2[r+7-c] := 1; \n\
+                    col[c]       := r; \n\
+                    try(c+1); \n\
+                    row[r]       := 0; \n\
+                    diag1[r+c]   := 0; \n\
+                    diag2[r+7-c] := 0 \n\
+                  ) \n\
+            ) \n\
+          in \n\
+            try(0) \n\
+          end \n\
+          "
+  ]
 
 let micro =
   let open Tiger_parser in
