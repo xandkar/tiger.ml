@@ -1,48 +1,53 @@
+module Abs = Tiger_absyn
+module Pos = Tiger_position
+module Sym = Tiger_symbol
+module Typ = Tiger_env_type
+
 type t =
-  | Invalid_syntax    of Tiger_position.t
-  | Unknown_id        of {id    : Tiger_symbol.t; pos : Tiger_position.t}
-  | Unknown_type      of {ty_id : Tiger_symbol.t; pos : Tiger_position.t}
-  | Id_not_a_function of {id    : Tiger_symbol.t; pos : Tiger_position.t}
+  | Invalid_syntax    of Pos.t
+  | Unknown_id        of {id    : Sym.t; pos : Pos.t}
+  | Unknown_type      of {ty_id : Sym.t; pos : Pos.t}
+  | Id_not_a_function of {id    : Sym.t; pos : Pos.t}
   | Wrong_type_of_expression_in_var_dec of
-      { var_id   : Tiger_symbol.t
-      ; expected : Tiger_env_type.t
-      ; given    : Tiger_env_type.t
-      ; pos      : Tiger_position.t
+      { var_id   : Sym.t
+      ; expected : Typ.t
+      ; given    : Typ.t
+      ; pos      : Pos.t
       }
   | Wrong_type_used_as_record of
-      { ty_id    : Tiger_symbol.t
-      ; ty       : Tiger_env_type.t
-      ; pos      : Tiger_position.t
+      { ty_id    : Sym.t
+      ; ty       : Typ.t
+      ; pos      : Pos.t
       }
   | Wrong_type_of_field_value of
-      { field_id : Tiger_symbol.t
-      ; expected : Tiger_env_type.t
-      ; given    : Tiger_env_type.t
-      ; pos      : Tiger_position.t
+      { field_id : Sym.t
+      ; expected : Typ.t
+      ; given    : Typ.t
+      ; pos      : Pos.t
       }
   | Wrong_type_of_arg of
-      { func     : Tiger_symbol.t
-      ; expected : Tiger_env_type.t
-      ; given    : Tiger_env_type.t
-      ; pos      : Tiger_position.t
+      { func     : Sym.t
+      ; expected : Typ.t
+      ; given    : Typ.t
+      ; pos      : Pos.t
       }
   | Wrong_number_of_args of
-      { func     : Tiger_symbol.t
+      { func     : Sym.t
       ; expected : int
       ; given    : int
-      ; pos      : Tiger_position.t
+      ; pos      : Pos.t
       }
   | Invalid_operand_type of
-      { oper  : Tiger_absyn.oper
+      { oper  : Abs.oper
       ; valid : string list
-      ; given : Tiger_env_type.t
-      ; pos   : Tiger_position.t
+      ; given : Typ.t
+      ; pos   : Pos.t
       }
   | Different_operand_types of
-      { oper  : Tiger_absyn.oper
-      ; left  : Tiger_env_type.t
-      ; right : Tiger_env_type.t
-      ; pos   : Tiger_position.t
+      { oper  : Abs.oper
+      ; left  : Typ.t
+      ; right : Typ.t
+      ; pos   : Pos.t
       }
 
 exception T of t
