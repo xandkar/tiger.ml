@@ -135,7 +135,7 @@ let p_ln = print_newline
 let p_indent n = p "%s" (indent n)
 
 let run tests =
-  let error_count = ref 0 in
+  let failure_count = ref 0 in
   let run_pass ~f ~input ~expect_output ~is_error_expected =
     let output_status = "n/a" in
     let output_value  = None in
@@ -146,10 +146,10 @@ let run tests =
           | Tiger_error.T e when is_error_expected e ->
               status_pass () ~info:(Tiger_error.to_string e)
           | Tiger_error.T e ->
-              incr error_count;
+              incr failure_count;
               status_fail () ~info:(Tiger_error.to_string e)
           | e ->
-              incr error_count;
+              incr failure_count;
               status_fail () ~info:(Printexc.to_string e)
           )
         in
@@ -158,7 +158,7 @@ let run tests =
         , output_value
         )
     | Error info ->
-        incr error_count;
+        incr failure_count;
         ( status_fail ~info ()
         , output_status
         , output_value
@@ -174,7 +174,7 @@ let run tests =
           | Some true ->
               status_pass ()
           | Some false ->
-              incr error_count;
+              incr failure_count;
               status_fail ()
         in
         let output_value = Some produced in
@@ -223,8 +223,11 @@ let run tests =
           p_indent 2; p "out: %s" stat_semant_out_cmp; p_ln ();
   );
   p "%s" bar_end; p_ln ();
-  let failures = !error_count in
-  let clr = (if failures = 0 then Green else Red) in
-  p "Failures: %s" (color clr (string_of_int failures)); p_ln ();
+  p "%s"
+    (match !failure_count with
+    | 0 -> status_pass ()
+    | _ -> status_fail () ~info:(s "%d failures" !failure_count)
+    );
+    p_ln ();
   p "%s" bar_end; p_ln ();
-  exit failures
+  exit !failure_count
