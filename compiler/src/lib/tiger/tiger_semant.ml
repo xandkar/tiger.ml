@@ -79,8 +79,25 @@ end = struct
           )
       | A.OpExp {oper; left; right; pos} ->
           trop oper ~left ~right ~pos
-      | A.RecordExp {fields=_; typ=_; pos=_} ->
-          unimplemented ()
+      | A.RecordExp {fields=field_exps; typ; pos} ->
+          let ty = env_get_typ ~sym:typ ~env ~pos in
+          Type.if_record
+            ty
+            ~f:(fun field_tys ->
+              List.iter field_exps ~f:(fun (field, exp, pos) ->
+                (match List.assoc_opt field field_tys with
+                | Some field_ty ->
+                    check_same {exp=(); ty=field_ty} (trexp exp) ~pos
+                | None ->
+                    E.raise
+                      (E.No_such_field_in_record {field; record=ty; pos})
+                )
+              )
+            )
+            ~otherwise:(fun () ->
+              E.raise (E.Wrong_type_used_as_record {ty_id=typ; ty; pos})
+            );
+          return ty
       | A.SeqExp exps ->
           (* Ignoring value because we only care if a type-checking exception
            * is raised in one of trexp calls: *)
