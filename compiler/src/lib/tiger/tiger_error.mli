@@ -7,7 +7,15 @@ type t =
   | Invalid_syntax    of Pos.t
   | Unknown_id        of {id    : Sym.t; pos : Pos.t}
   | Unknown_type      of {ty_id : Sym.t; pos : Pos.t}
+  | Id_is_a_function  of {id    : Sym.t; pos : Pos.t}
   | Id_not_a_function of {id    : Sym.t; pos : Pos.t}
+  | No_such_field_in_record of {field : Sym.t; record : Typ.t; pos : Pos.t}
+  | Exp_not_a_record  of {ty    : Typ.t; pos : Pos.t}
+  | Wrong_type of
+      { expected : Typ.t
+      ; given    : Typ.t
+      ; pos      : Pos.t
+      }
   | Wrong_type_of_expression_in_var_dec of
       { var_id   : Sym.t
       ; expected : Typ.t

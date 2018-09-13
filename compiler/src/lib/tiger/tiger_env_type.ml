@@ -15,13 +15,15 @@ type t =
   | String
   | Record of
       { unique : unique
-      ; fields : (Symbol.t * t) list
+      ; fields : record_fields
       }
   | Array of
       { unique : unique
       ; ty     : t
       }
   | Name of Symbol.t * t option ref
+and record_fields =
+  (Tiger_symbol.t * t) list
 
 type env =
   (Symbol.t, t ) Map.t
@@ -50,23 +52,29 @@ let is_equal t1 t2 =
    * TODO: Can we ignore the warning locally?
    * *)
 
+let is_int t =
+  t = Int
+
+let is_string t =
+  t = String
+
+let is_array = function
+  | Unit
+  | Int
+  | String
+  | Name _
+  | Nil
+  | Record _ -> false
+  | Array  _ -> true
+
 let is_record = function
   | Unit
   | Int
   | String
   | Name _
-  | Array  _ -> false
-  | Nil  (* nil belongs to ANY record *)
-  | Record _ -> true
-
-let is_int = function
-  | Unit
   | Nil
-  | String
-  | Name _
-  | Record _
   | Array  _ -> false
-  | Int      -> true
+  | Record _ -> true
 
 let is_name = function
   | Unit
@@ -76,6 +84,18 @@ let is_name = function
   | Record _
   | Array  _ -> false
   | Name _   -> true
+
+let if_record t ~f ~otherwise =
+  match t with
+  | Record {fields; _} ->
+      f fields
+  | Unit
+  | Int
+  | String
+  | Name _
+  | Nil
+  | Array  _ ->
+      otherwise ()
 
 let to_string = function
   | Unit               -> "unit"

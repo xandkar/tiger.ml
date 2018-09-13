@@ -1,9 +1,8 @@
+module List = ListLabels
+
 module A         = Tiger_absyn
 module Env       = Tiger_env
 module E         = Tiger_error
-module Map       = Tiger_map
-module Pos       = Tiger_position
-module Symbol    = Tiger_symbol
 module Translate = Tiger_translate
 module Type      = Tiger_env_type
 module Value     = Tiger_env_value
@@ -32,41 +31,161 @@ end = struct
   let unimplemented () =
     failwith "unimplemented"
 
-  (* TODO: Perhaps a wrapper for env.get that raises semantic error if not found *)
+  let return ty     = {exp = (); ty}
+  let return_unit   = return Type.Unit
+  let return_nil    = return Type.Nil
+  let return_int    = return Type.Int
+  let return_string = return Type.String
 
-  let transExp ~env:_ exp =
-    (match exp with
-    | A.NilExp ->
-        unimplemented ()
-    | A.IntExp _ ->
-        unimplemented ()
-    | A.StringExp {string=_; _} ->
-        unimplemented ()
-    | A.CallExp {func=_; args=_; pos=_} ->
-        unimplemented ()
-    | A.OpExp {left=_; oper=_; right=_; pos=_} ->
-        unimplemented ()
-    | A.RecordExp {fields=_; typ=_; pos=_} ->
-        unimplemented ()
-    | A.SeqExp _ ->
-        unimplemented ()
-    | A.AssignExp {var=_; exp=_; _} ->
-        unimplemented ()
-    | A.IfExp {test=_; then'=_; else'=_; _} ->
-        unimplemented ()
-    | A.WhileExp {test=_; body=_; _} ->
-        unimplemented ()
-    | A.ForExp {var=_; lo=_; hi=_; body=_; _} ->
-        unimplemented ()
-    | A.BreakExp _ ->
-        unimplemented ()
-    | A.LetExp {decs=_; body=_; _} ->
-        unimplemented ()
-    | A.ArrayExp {typ=_; size=_; init=_; _} ->
-        unimplemented ()
-    | A.VarExp _ ->
-        unimplemented ()
-    )
+  let env_get_typ ~sym ~env ~pos : Type.t =
+    match Env.get_typ env sym with
+    | Some ty -> ty
+    | None    -> E.raise (E.Unknown_type {ty_id=sym; pos})
+
+  let env_get_val ~sym ~env ~pos : Value.t =
+    match Env.get_val env sym with
+    | Some ty -> ty
+    | None    -> E.raise (E.Unknown_id {id=sym; pos})
+
+  let check_same {exp=_; ty=ty_left} {exp=_; ty=ty_right} ~pos : unit =
+    if Type.is_equal ty_left ty_right then
+      ()
+    else
+      E.raise (E.Wrong_type {expected=ty_left; given=ty_right; pos})
+
+  let check_int expty ~pos : unit =
+    check_same {exp=(); ty=Type.Int} expty ~pos
+
+  let rec transExp ~env exp =
+    let rec trexp exp =
+      (match exp with
+      | A.NilExp ->
+          return_nil
+      | A.IntExp _ ->
+          return_int
+      | A.StringExp {string=_; _} ->
+          return_string
+      | A.CallExp {func=_; args=_; pos=_} ->
+          unimplemented ()
+      | A.OpExp {oper; left; right; pos} ->
+          trop oper ~left ~right ~pos
+      | A.RecordExp {fields=_; typ=_; pos=_} ->
+          unimplemented ()
+      | A.SeqExp exps ->
+          (* Ignoring value because we only care if a type-checking exception
+           * is raised in one of trexp calls: *)
+          List.iter exps ~f:(fun (exp, _) -> ignore (trexp exp));
+          return_unit
+      | A.AssignExp {var; exp; pos} ->
+          check_same (trvar var) (trexp exp) ~pos;
+          (* TODO: Add var->exp to val env? *)
+          return_unit
+      | A.IfExp {test; then'; else'; pos} ->
+          (* test : must be int, because we have no bool *)
+          (* then : must equal else *)
+          (* else : must equal then or be None *)
+          check_int (trexp test) ~pos;
+          (match (trexp then', else') with
+          | expty_then, None ->
+              expty_then
+          | expty_then, Some else' ->
+              let expty_else = trexp else' in
+              check_same expty_then expty_else ~pos;
+              expty_then
+          )
+      | A.WhileExp {test; body; pos} ->
+          (* test : must be int, because we have no bool *)
+          check_int (trexp test) ~pos;
+          ignore (trexp body);  (* Only care if a type-error is raised *)
+          return_unit
+      | A.ForExp {var; lo; hi; body; pos; escape=_} ->
+          check_int (trexp lo) ~pos;
+          check_int (trexp hi) ~pos;
+          (* Only care if a type-error is raised *)
+          ignore (transExp ~env:(Env.set_typ env var Type.Int) body);
+          return_unit
+      | A.BreakExp _ ->
+          return_unit
+      | A.LetExp {decs=_; body=_; _} ->
+          unimplemented ()
+      | A.ArrayExp {typ=_; size=_; init=_; _} ->
+          unimplemented ()
+      | A.VarExp var ->
+          trvar var
+      )
+    and trvar =
+      (function
+      | A.SimpleVar {symbol=sym; pos} ->
+          (match env_get_val ~sym ~env ~pos with
+          | Value.Fun _    -> E.raise (E.Id_is_a_function {id=sym; pos})
+          | Value.Var {ty} -> return ty
+          )
+      | A.FieldVar {var; symbol; pos} ->
+          let {exp=_; ty} = trvar var in
+          Type.if_record
+            ty
+            ~f:(fun fields ->
+              (match List.assoc_opt symbol fields with
+              | None ->
+                  E.raise
+                    (E.No_such_field_in_record {field=symbol; record=ty; pos})
+              | Some ty ->
+                  return ty
+              )
+            )
+            ~otherwise:(fun () -> E.raise (E.Exp_not_a_record {ty; pos}))
+      | A.SubscriptVar {var=_; exp=_; pos=_} ->
+          unimplemented ()
+      )
+    and trop oper ~left ~right ~pos =
+      let expty_left  = trexp left in
+      let expty_right = trexp right in
+      check_same expty_left expty_right ~pos;
+      let {exp=_; ty} = expty_left in
+      let module T = Type in
+      (match oper with
+      (* Arithmetic: int *)
+      | A.PlusOp
+      | A.MinusOp
+      | A.TimesOp
+      | A.DivideOp ->
+          check_int expty_left ~pos;
+          return_int
+      (* Equality: int, string, array, record *)
+      | A.EqOp
+      | A.NeqOp ->
+          if (T.is_int    ty)
+          || (T.is_string ty)
+          || (T.is_array  ty)
+          || (T.is_record ty)
+          then
+            return ty
+          else
+            E.raise (E.Invalid_operand_type
+              { oper
+              ; valid = ["int"; "string"; "array"; "record"]
+              ; given = ty
+              ; pos
+              })
+      (* Order: int, string *)
+      | A.LtOp
+      | A.LeOp
+      | A.GtOp
+      | A.GeOp ->
+          if (T.is_int    ty)
+          || (T.is_string ty)
+          then
+            return ty
+          else
+            E.raise (E.Invalid_operand_type
+              { oper
+              ; valid = ["int"; "string"]
+              ; given = ty
+              ; pos
+              })
+      )
+    in
+    trexp exp
 
   let transVar ~env:_ var =
     (match var with
