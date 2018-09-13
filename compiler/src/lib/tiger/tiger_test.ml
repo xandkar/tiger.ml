@@ -120,19 +120,19 @@ let run tests =
     let output_value  = None in
     match f input with
     | exception e ->
-        let c, e =
+        let status_text, error_text =
           (match e with
           | Tiger_error.T e when is_error_expected e ->
-              (Green, Tiger_error.to_string e)
+              ((color Green "OK"), Tiger_error.to_string e)
           | Tiger_error.T e ->
               incr error_count;
-              (Red, Tiger_error.to_string e)
+              ((color Red "ERROR"), Tiger_error.to_string e)
           | e ->
               incr error_count;
-              (Red, Printexc.to_string e)
+              ((color Red "ERROR"), Printexc.to_string e)
           )
         in
-        ( s "%s: %s" (color c "ERROR") e
+        ( s "%s: %s" status_text error_text
         , output_status
         , output_value
         )
