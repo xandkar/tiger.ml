@@ -135,8 +135,18 @@ end = struct
           return_unit
       | A.LetExp {decs=_; body=_; _} ->
           unimplemented ()
-      | A.ArrayExp {typ=_; size=_; init=_; _} ->
-          unimplemented ()
+      | A.ArrayExp {typ; size; init; pos} ->
+          check_int (trexp size) ~pos;
+          let ty = env_get_typ ~sym:typ ~env ~pos in
+          Type.if_array
+            ty
+            ~f:(fun ty_elements ->
+              check_same {exp=(); ty=ty_elements} (trexp init) ~pos
+            )
+            ~otherwise:(fun () ->
+              E.raise (E.Wrong_type_used_as_array {ty_id=typ; ty; pos})
+            );
+          return ty
       | A.VarExp var ->
           trvar var
       )

@@ -28,6 +28,11 @@ type t =
       ; ty       : Typ.t
       ; pos      : Pos.t
       }
+  | Wrong_type_used_as_array of
+      { ty_id    : Sym.t
+      ; ty       : Typ.t
+      ; pos      : Pos.t
+      }
   | Wrong_type_of_field_value of
       { field_id : Sym.t
       ; expected : Typ.t

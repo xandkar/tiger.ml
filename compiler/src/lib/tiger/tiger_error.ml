@@ -28,6 +28,11 @@ type t =
       ; ty       : Typ.t
       ; pos      : Pos.t
       }
+  | Wrong_type_used_as_array of
+      { ty_id    : Sym.t
+      ; ty       : Typ.t
+      ; pos      : Pos.t
+      }
   | Wrong_type_of_field_value of
       { field_id : Sym.t
       ; expected : Typ.t
@@ -102,6 +107,10 @@ let to_string =
         (Typ.to_string expected)
         (Typ.to_string given)
         (Pos.to_string pos)
+  | Wrong_type_used_as_array {ty_id; ty; pos} ->
+      s ( "Identifier %S is bound to type %S, not an array. "
+        ^^"It cannot be used in %s")
+        (Sym.to_string ty_id) (Typ.to_string ty) (Pos.to_string pos)
   | Wrong_type_used_as_record {ty_id; ty; pos} ->
       s ( "Identifier %S is bound to type %S, not a record. "
         ^^"It cannot be used in %s")
@@ -152,6 +161,7 @@ let is_unknown_id t =
   | Exp_not_an_array _
   | Wrong_type _
   | Wrong_type_of_expression_in_var_dec _
+  | Wrong_type_used_as_array _
   | Wrong_type_used_as_record _
   | Wrong_type_of_field_value _
   | Wrong_type_of_arg _
