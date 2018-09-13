@@ -64,6 +64,20 @@ let color color string =
   let color_off = "\027[0m" in
   sprintf "%s%s%s" color_on string color_off
 
+let status indicator info =
+  match info with
+  | "" -> indicator
+  | _  -> sprintf "%s: %s" indicator info
+
+let status_ok ?(info="") () =
+  status (color Green "OK") info
+
+let status_error ?(info="") () =
+  status (color Red "ERROR") info
+
+let status_warn ?(info="") () =
+  status (color Yellow "WARN") info
+
 let case
     ?(out_lexing)
     ?(out_parsing)
@@ -127,41 +141,41 @@ let run tests =
     let output_value  = None in
     match f input with
     | exception e ->
-        let status_text, error_text =
+        let execution_status =
           (match e with
           | Tiger_error.T e when is_error_expected e ->
-              ((color Green "OK"), Tiger_error.to_string e)
+              status_ok () ~info:(Tiger_error.to_string e)
           | Tiger_error.T e ->
               incr error_count;
-              ((color Red "ERROR"), Tiger_error.to_string e)
+              status_error () ~info:(Tiger_error.to_string e)
           | e ->
               incr error_count;
-              ((color Red "ERROR"), Printexc.to_string e)
+              status_error () ~info:(Printexc.to_string e)
           )
         in
-        ( s "%s: %s" status_text error_text
+        ( execution_status
         , output_status
         , output_value
         )
-    | Error msg ->
+    | Error info ->
         incr error_count;
-        ( s "%s: %s" (color Red "ERROR") msg
+        ( status_error ~info ()
         , output_status
         , output_value
         )
     | Ok produced ->
-        let execution_status = s "%s" (color Green "OK") in
+        let execution_status = status_ok () in
         let output_status =
           match
             Option.map expect_output (fun expected -> expected = produced)
           with
           | None ->
-              s "%s" (color Yellow "expected output not provided")
+              status_warn () ~info:"expected output not provided"
           | Some true ->
-              s "%s" (color Green "OK")
+              status_ok ()
           | Some false ->
               incr error_count;
-              s "%s" (color Red "ERROR")
+              status_error ()
         in
         let output_value = Some produced in
         (execution_status, output_status, output_value)
