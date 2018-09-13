@@ -45,7 +45,7 @@ type t =
   ; code        : string
   ; out_lexing  : (Tiger_parser.token list) option
   ; out_parsing : Tiger_absyn.t option
-  ; is_error_expected : (Tiger_error.t -> bool)
+  ; is_error_expected_semant : (Tiger_error.t -> bool)
   }
 
 type color =
@@ -81,7 +81,7 @@ let status_skip ?(info="") () =
 let case
     ?(out_lexing)
     ?(out_parsing)
-    ?(is_error_expected=(fun _ -> false))
+    ?(is_error_expected_semant=(fun _ -> false))
     ~code
     name
   =
@@ -89,7 +89,7 @@ let case
   ; code
   ; out_lexing
   ; out_parsing
-  ; is_error_expected
+  ; is_error_expected_semant
   }
 
 let bar_sep = String.make 80 '-'
@@ -181,27 +181,34 @@ let run tests =
         (execution_status, output_status, output_value)
   in
   List.iter tests ~f:(
-    fun {name; code; out_lexing; out_parsing; is_error_expected} ->
+    fun
+      { name
+      ; code
+      ; out_lexing
+      ; out_parsing
+      ; is_error_expected_semant
+      }
+    ->
       let (stat_lex_exe, stat_lex_out_cmp, _) =
         run_pass
           ~f:pass_lexing
           ~input:code
           ~expect_output:out_lexing
-          ~is_error_expected
+          ~is_error_expected:(fun _ -> false)
       in
       let (stat_pars_exe, stat_pars_out_cmp, absyn_opt) =
         run_pass
           ~f:pass_parsing
           ~input:code
           ~expect_output:out_parsing
-          ~is_error_expected
+          ~is_error_expected:(fun _ -> false)
       in
       let (stat_semant_exe, stat_semant_out_cmp, _) =
         run_pass
           ~f:pass_semant
           ~input:absyn_opt
           ~expect_output:(Some ())
-          ~is_error_expected
+          ~is_error_expected:is_error_expected_semant
       in
       p "%s" bar_sep; p_ln ();
       p "Test: %S" name; p_ln ();

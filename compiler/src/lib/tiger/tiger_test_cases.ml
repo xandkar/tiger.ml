@@ -1,3 +1,4 @@
+module Error = Tiger_error
 module Test = Tiger_test
 
 let book =
@@ -184,7 +185,13 @@ let micro =
   [ (let code = "nil"    in Test.case code ~code ~out_lexing:[NIL])
   ; (let code = "5"      in Test.case code ~code ~out_lexing:[INT 5])
   ; (let code = "-5"     in Test.case code ~code ~out_lexing:[MINUS; INT 5])
-  ; (let code = "f()"    in Test.case code ~code ~out_lexing:[ID "f"; LPAREN; RPAREN])
+  ; ( let code = "f()" in
+      Test.case
+        code
+        ~code
+        ~out_lexing:[ID "f"; LPAREN; RPAREN]
+        ~is_error_expected_semant:Error.is_unknown_id
+    )
   ; (let code = "abc.i"  in Test.case code ~code ~out_lexing:[ID "abc"; DOT; ID "i"])
   ; (let code = "abc[0]" in Test.case code ~code ~out_lexing:[ID "abc"; LBRACK; INT 0; RBRACK])
 
@@ -196,9 +203,14 @@ let micro =
       ~out_lexing:
         [ID "abc"; LBRACK; INT 5; RBRACK; OF; NIL])
 
-  ; (let code = "f(\"a\", 3, foo)" in Test.case code ~code
-      ~out_lexing:
-        [ID "f"; LPAREN; STRING "a"; COMMA; INT 3; COMMA; ID "foo"; RPAREN])
+  ; ( let code = "f(\"a\", 3, foo)" in
+      Test.case
+        code
+        ~code
+        ~out_lexing:
+          [ID "f"; LPAREN; STRING "a"; COMMA; INT 3; COMMA; ID "foo"; RPAREN]
+        ~is_error_expected_semant:Error.is_unknown_id
+    )
   ]
 
 let all =

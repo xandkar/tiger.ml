@@ -110,3 +110,19 @@ let to_string =
         (Abs.op_show oper)
         (Typ.to_string right)
         (Pos.to_string pos)
+
+let is_unknown_id t =
+  match t with
+  | Unknown_id _ ->
+      true
+  | Invalid_syntax _
+  | Unknown_type _
+  | Id_not_a_function _
+  | Wrong_type_of_expression_in_var_dec _
+  | Wrong_type_used_as_record _
+  | Wrong_type_of_field_value _
+  | Wrong_type_of_arg _
+  | Wrong_number_of_args _
+  | Invalid_operand_type _
+  | Different_operand_types _ ->
+      false

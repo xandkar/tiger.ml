@@ -50,3 +50,5 @@ exception T of t
 val raise : t -> 'a
 
 val to_string : t -> string
+
+val is_unknown_id : t -> bool
