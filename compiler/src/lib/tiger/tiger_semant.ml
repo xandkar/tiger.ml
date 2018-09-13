@@ -56,6 +56,8 @@ end = struct
   let check_int expty ~pos : unit =
     check_same {exp=(); ty=Type.Int} expty ~pos
 
+  (* TODO: actual_ty *)
+
   let rec transExp ~env exp =
     let rec trexp exp =
       (match exp with
@@ -65,8 +67,16 @@ end = struct
           return_int
       | A.StringExp {string=_; _} ->
           return_string
-      | A.CallExp {func=_; args=_; pos=_} ->
-          unimplemented ()
+      | A.CallExp {func; args; pos} ->
+          (match env_get_val ~sym:func ~env ~pos with
+          | Value.Fun {formals; result} ->
+              List.iter2 formals args ~f:(fun ty_expected exp_given ->
+                check_same {exp=(); ty = ty_expected} (trexp exp_given) ~pos;
+              );
+              return result
+          | Value.Var _ ->
+              E.raise (E.Id_not_a_function {id=func; pos})
+          )
       | A.OpExp {oper; left; right; pos} ->
           trop oper ~left ~right ~pos
       | A.RecordExp {fields=_; typ=_; pos=_} ->
