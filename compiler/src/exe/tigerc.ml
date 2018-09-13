@@ -13,6 +13,7 @@ let () =
       Printf.eprintf "%s\n" (Tiger.Error.to_string error);
       exit 1;
   | absyn ->
+      Tiger.Semant.transProg absyn;
       print_endline (Tiger.Absyn.to_string absyn)
   );
   close_in ic;
