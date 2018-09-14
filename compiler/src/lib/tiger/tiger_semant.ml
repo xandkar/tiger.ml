@@ -19,17 +19,18 @@ module Semant : sig
    * Appel's
    *)
   val transExp : env:Env.t -> A.exp -> expty
-  val transVar : env:Env.t -> A.var -> expty
-  val transDec : env:Env.t -> A.dec -> Env.t
-  val transTy  : env:Env.t -> A.ty  -> Type.t  (* needs only type env *)
+
+  (* transVar does not seem to be needed, as trvar handles all our cases.
+   * Am I wrong?
+   *
+   * val transVar : env:Env.t -> A.var -> expty
+   *
+   *)
 end = struct
   type expty =
     { exp : Translate.exp
     ; ty  : Type.t
     }
-
-  let unimplemented () =
-    failwith "unimplemented"
 
   let return ty     = {exp = (); ty}
   let return_unit   = return Type.Unit
@@ -235,7 +236,7 @@ end = struct
       )
     in
     trexp exp
-  and transDec ~env dec =
+  and transDec ~(env : Env.t) (dec : A.dec) : Env.t =
     (match dec with
     | A.VarDec {name; typ=typ_opt; init; pos=pos_outter; escape=_} ->
         let ty =
@@ -279,7 +280,7 @@ end = struct
             Env.set_val env name (Value.Fun {formals; result})
         )
     )
-  and transTy ~env typ =
+  and transTy ~(env : Env.t) (typ : A.ty) : Type.t =
     (match typ with
     | A.NameTy {symbol=sym; pos} ->
         env_get_typ ~sym ~env ~pos
@@ -294,16 +295,6 @@ end = struct
     | A.ArrayTy {symbol=sym; pos} ->
         let element_ty = env_get_typ ~sym ~env ~pos in
         Type.new_array element_ty
-    )
-
-  let transVar ~env:_ var =
-    (match var with
-    | A.SimpleVar {symbol=_; _} ->
-        unimplemented ()
-    | A.FieldVar {var=_; symbol=_; _} ->
-        unimplemented ()
-    | A.SubscriptVar {var=_; exp=_; _} ->
-        unimplemented ()
     )
 end
 
