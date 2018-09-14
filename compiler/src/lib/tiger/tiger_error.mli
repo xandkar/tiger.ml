@@ -70,4 +70,6 @@ val raise : t -> 'a
 
 val to_string : t -> string
 
-val is_unknown_id : t -> bool
+val is_unknown_id   : t -> bool
+val is_unknown_type : t -> bool
+val is_wrong_type   : t -> bool

@@ -131,6 +131,7 @@ let book =
         [ IF; LPAREN; INT 5; GT; INT 4; RPAREN; THEN; INT 13; ELSE; STRING " "
         ]
       )
+      ~is_error_expected_semant:Error.is_wrong_type (* TODO: Be more specific *)
   ; Test.case
     "Book test: 8-queens"
     ~code:
@@ -190,19 +191,37 @@ let micro =
         code
         ~code
         ~out_lexing:[ID "f"; LPAREN; RPAREN]
-        ~is_error_expected_semant:Error.is_unknown_id
+        ~is_error_expected_semant:Error.is_unknown_id (* TODO: Be more specific *)
     )
-  ; (let code = "abc.i"  in Test.case code ~code ~out_lexing:[ID "abc"; DOT; ID "i"])
-  ; (let code = "abc[0]" in Test.case code ~code ~out_lexing:[ID "abc"; LBRACK; INT 0; RBRACK])
-
-  ; (let code = "abc[0] := foo()" in Test.case code ~code
-      ~out_lexing:
-        [ID "abc"; LBRACK; INT 0; RBRACK; ASSIGN; ID "foo"; LPAREN; RPAREN])
-
-  ; (let code = "abc [5] of nil" in Test.case code ~code
-      ~out_lexing:
-        [ID "abc"; LBRACK; INT 5; RBRACK; OF; NIL])
-
+  ; ( let code = "abc.i" in
+      Test.case
+        code
+        ~code
+        ~out_lexing:[ID "abc"; DOT; ID "i"]
+        ~is_error_expected_semant:Error.is_unknown_id (* TODO: Be more specific *)
+    )
+  ; ( let code = "abc[0]" in
+      Test.case
+        code
+        ~code
+        ~out_lexing:[ID "abc"; LBRACK; INT 0; RBRACK]
+        ~is_error_expected_semant:Error.is_unknown_id (* TODO: Be more specific *)
+    )
+  ; ( let code = "abc[0] := foo()" in
+      Test.case
+        code
+        ~code
+        ~out_lexing:
+          [ID "abc"; LBRACK; INT 0; RBRACK; ASSIGN; ID "foo"; LPAREN; RPAREN]
+        ~is_error_expected_semant:Error.is_unknown_id (* TODO: Be more specific *)
+    )
+  ; ( let code = "abc [5] of nil" in
+      Test.case
+        code
+        ~code
+        ~out_lexing:[ID "abc"; LBRACK; INT 5; RBRACK; OF; NIL]
+        ~is_error_expected_semant:Error.is_unknown_type (* TODO: Be more specific *)
+    )
   ; ( let code = "f(\"a\", 3, foo)" in
       Test.case
         code
