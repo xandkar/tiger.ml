@@ -180,6 +180,7 @@ let run tests =
         let output_value = Some produced in
         (execution_status, output_status, output_value)
   in
+  let test_case_count = ref 0 in
   List.iter tests ~f:(
     fun
       { name
@@ -189,6 +190,7 @@ let run tests =
       ; is_error_expected_semant
       }
     ->
+      incr test_case_count;
       let (stat_lex_exe, stat_lex_out_cmp, _) =
         run_pass
           ~f:pass_lexing
@@ -224,9 +226,12 @@ let run tests =
   );
   p "%s" bar_end; p_ln ();
   p "%s"
-    (match !failure_count with
-    | 0 -> status_pass ()
-    | _ -> status_fail () ~info:(s "%d failures" !failure_count)
+    ( let info =
+        s "%d failures in %d test cases" !failure_count !test_case_count
+      in
+      match !failure_count with
+      | 0 -> status_pass () ~info
+      | _ -> status_fail () ~info
     );
     p_ln ();
   p "%s" bar_end; p_ln ();
