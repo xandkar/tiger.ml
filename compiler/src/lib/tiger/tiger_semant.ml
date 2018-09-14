@@ -100,12 +100,18 @@ end = struct
               E.raise (E.Wrong_type_used_as_record {ty_id=typ; ty; pos})
             );
           return ty
-      | A.SeqExp exps ->
-          (* Ignoring value because we only care if a type-checking exception
-           * is raised in one of trexp calls: *)
-          List.iter exps ~f:(fun (exp, _) -> ignore (trexp exp));
-          (* FIXME: Return type of last expression, not unit. *)
+      | A.SeqExp [] ->
           return_unit
+      | A.SeqExp exps ->
+          let last xs =
+            xs
+            |> List.rev  (* Yes, redundant, but clean-looking ;-P *)
+            |> List.hd   (* Empty is matched in above SeqExp match case *)
+          in
+          exps
+          |> List.map ~f:(fun (exp, _) -> let {ty; _} = trexp exp in ty)
+          |> last
+          |> return
       | A.AssignExp {var; exp; pos} ->
           check_same (trvar var) (trexp exp) ~pos;
           (* TODO: Add var->exp to val env? *)
