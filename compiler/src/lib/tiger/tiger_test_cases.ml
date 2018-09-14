@@ -231,15 +231,15 @@ let micro =
         ~is_error_expected_semant:Error.is_unknown_id
     )
   ; ( let code =
-        "let
-            type a = int
-            type b = a
-            type c = b
-            var i : a := 2
-            var j : c := 3
-        in
-            i := j
-        end
+        "let \
+            type a = int \
+            type b = a \
+            type c = b \
+            var i : a := 2 \
+            var j : c := 3 \
+        in \
+            i := j \
+        end \
         "
       in
       Test.case
@@ -247,14 +247,14 @@ let micro =
         ~code
     )
   ; ( let code =
-        "let
-            type a = {x:int, y:int}
-            type b = {x:int, y:int}  /* new type generated */
-            var foo : a := a {x = 1, y = 2}
-            var bar : b := b {x = 1, y = 2}
-        in
-            foo = bar  /* incompatible types */
-        end
+        "let \
+            type a = {x:int, y:int} \
+            type b = {x:int, y:int}  /* new type generated */ \
+            var foo : a := a {x = 1, y = 2} \
+            var bar : b := b {x = 1, y = 2} \
+        in \
+            foo = bar  /* incompatible types */ \
+        end \
         "
       in
       Test.case
