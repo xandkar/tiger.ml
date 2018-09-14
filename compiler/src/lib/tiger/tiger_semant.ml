@@ -247,10 +247,30 @@ end = struct
           )
         in
         Env.set_val env name (Value.Var {ty})
-    | A.TypeDecs _ ->
-        unimplemented ()
+    | A.TypeDecs typedecs ->
+        List.fold_left typedecs ~init:env ~f:(
+          fun env (A.TypeDec {name; ty; pos=_}) ->
+            let ty = transTy ~env ty in
+            Env.set_typ env name ty
+        )
     | A.FunDecs _ ->
         unimplemented ()
+    )
+  and transTy ~env typ =
+    (match typ with
+    | A.NameTy {symbol=sym; pos} ->
+        env_get_typ ~sym ~env ~pos
+    | A.RecordTy fields ->
+        let fields =
+          List.map fields ~f:(fun (A.Field {name; escape=_; typ; pos}) ->
+            let ty = env_get_typ ~sym:typ ~env ~pos in
+            (name, ty)
+          )
+        in
+        Type.new_record fields
+    | A.ArrayTy {symbol=sym; pos} ->
+        let element_ty = env_get_typ ~sym ~env ~pos in
+        Type.new_array element_ty
     )
 
   let transVar ~env:_ var =
@@ -260,16 +280,6 @@ end = struct
     | A.FieldVar {var=_; symbol=_; _} ->
         unimplemented ()
     | A.SubscriptVar {var=_; exp=_; _} ->
-        unimplemented ()
-    )
-
-  let transTy ~env:_ typ =
-    (match typ with
-    | A.NameTy {symbol = _; pos = _} ->
-        unimplemented ()
-    | A.RecordTy _ ->
-        unimplemented ()
-    | A.ArrayTy {symbol = _; pos = _} ->
         unimplemented ()
     )
 end
