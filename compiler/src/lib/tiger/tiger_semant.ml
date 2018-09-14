@@ -133,8 +133,13 @@ end = struct
           return_unit
       | A.BreakExp _ ->
           return_unit
-      | A.LetExp {decs=_; body=_; _} ->
-          unimplemented ()
+      | A.LetExp {decs; body; pos=_} ->
+          (* (1) decs augment env *)
+          (* (2) body checked against the new env *)
+          let env =
+            List.fold_left decs ~init:env ~f:(fun env dec -> transDec dec ~env)
+          in
+          transExp body ~env
       | A.ArrayExp {typ; size; init; pos} ->
           check_int (trexp size) ~pos;
           let ty = env_get_typ ~sym:typ ~env ~pos in
@@ -228,6 +233,25 @@ end = struct
       )
     in
     trexp exp
+  and transDec ~env dec =
+    (match dec with
+    | A.VarDec {name; typ=typ_opt; init; pos=pos_outter; escape=_} ->
+        let ty =
+          (match (typ_opt, transExp ~env init) with
+          | None, {ty; exp=()} ->
+              ty
+          | Some (sym, pos_inner), expty_init ->
+              let ty = env_get_typ ~sym ~env ~pos:pos_inner in
+              check_same {exp=(); ty} expty_init ~pos:pos_outter;
+              ty
+          )
+        in
+        Env.set_val env name (Value.Var {ty})
+    | A.TypeDecs _ ->
+        unimplemented ()
+    | A.FunDecs _ ->
+        unimplemented ()
+    )
 
   let transVar ~env:_ var =
     (match var with
@@ -236,16 +260,6 @@ end = struct
     | A.FieldVar {var=_; symbol=_; _} ->
         unimplemented ()
     | A.SubscriptVar {var=_; exp=_; _} ->
-        unimplemented ()
-    )
-
-  let transDec ~env:_ dec =
-    (match dec with
-    | A.VarDec {name=_; typ=_; init=_; pos=_; escape=_} ->
-        unimplemented ()
-    | A.TypeDecs _ ->
-        unimplemented ()
-    | A.FunDecs _ ->
         unimplemented ()
     )
 
@@ -260,7 +274,8 @@ end = struct
     )
 end
 
+open Semant
+
 let transProg absyn =
-  let open Semant in
   let {exp = _; ty = _} = transExp absyn ~env:Env.base in
   ()
