@@ -230,6 +230,38 @@ let micro =
           [ID "f"; LPAREN; STRING "a"; COMMA; INT 3; COMMA; ID "foo"; RPAREN]
         ~is_error_expected_semant:Error.is_unknown_id
     )
+  ; ( let code =
+        "let
+            type a = int
+            type b = a
+            type c = b
+            var i : a := 2
+            var j : c := 3
+        in
+            i := j
+        end
+        "
+      in
+      Test.case
+        "Type aliases"
+        ~code
+    )
+  ; ( let code =
+        "let
+            type a = {x:int, y:int}
+            type b = {x:int, y:int}  /* new type generated */
+            var foo : a := a {x = 1, y = 2}
+            var bar : b := b {x = 1, y = 2}
+        in
+            foo = bar  /* incompatible types */
+        end
+        "
+      in
+      Test.case
+        code
+        ~code
+				~is_error_expected_semant:Error.is_wrong_type (* TODO: Be more specific *)
+    )
   ]
 
 let all =
