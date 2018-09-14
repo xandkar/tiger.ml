@@ -132,7 +132,8 @@ end = struct
           check_int (trexp lo) ~pos;
           check_int (trexp hi) ~pos;
           (* Only care if a type-error is raised *)
-          ignore (transExp ~env:(Env.set_typ env var Type.Int) body);
+          let env = Env.set_val env var (Value.Var {ty = Type.Int}) in
+          ignore (transExp ~env body);
           return_unit
       | A.BreakExp _ ->
           return_unit
