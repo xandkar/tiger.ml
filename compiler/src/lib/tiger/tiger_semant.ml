@@ -103,6 +103,7 @@ end = struct
           (* Ignoring value because we only care if a type-checking exception
            * is raised in one of trexp calls: *)
           List.iter exps ~f:(fun (exp, _) -> ignore (trexp exp));
+          (* FIXME: Return type of last expression, not unit. *)
           return_unit
       | A.AssignExp {var; exp; pos} ->
           check_same (trvar var) (trexp exp) ~pos;
@@ -254,8 +255,29 @@ end = struct
             let ty = transTy ~env ty in
             Env.set_typ env name ty
         )
-    | A.FunDecs _ ->
-        unimplemented ()
+    | A.FunDecs fundecs ->
+        List.fold_left fundecs ~init:env ~f:(
+          fun env (A.FunDec {name; params; result; body; pos=_}) ->
+            let (env_for_body, formals_in_reverse_order) =
+              List.fold_left params ~init:(env, []) ~f:(
+                fun (env, formals) (A.Field {name; escape=_; typ; pos}) ->
+                  let ty = env_get_typ ~env ~sym:typ ~pos in
+                  let env = Env.set_val env name (Value.Var {ty}) in
+                  (env, ty :: formals)
+              )
+            in
+            (* ignore because we only care if an exception is raised *)
+            ignore (transExp ~env:env_for_body body);
+            let formals = List.rev formals_in_reverse_order in
+            let result =
+              match result with
+              | None ->
+                  Type.Unit
+              | Some (sym, pos) ->
+                  env_get_typ ~sym ~env ~pos
+            in
+            Env.set_val env name (Value.Fun {formals; result})
+        )
     )
   and transTy ~env typ =
     (match typ with
