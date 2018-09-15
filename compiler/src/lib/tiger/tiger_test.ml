@@ -78,7 +78,9 @@ let status_fail ?(info="") () =
   status (color Red "Fail") info
 
 let status_skip ?(info="") () =
-  status (color Yellow "Skip") info
+  (*let indicator = (color Yellow "Skip") in*)
+  let indicator = "Skip" in
+  status indicator info
 
 let case
     ?(out_lexing=None)
