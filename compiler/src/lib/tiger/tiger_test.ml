@@ -70,6 +70,7 @@ let status indicator info =
   | "" -> indicator
   | _  -> sprintf "%s: %s" indicator info
 
+(* TODO: Perhaps a global option whether to print non-fail info? *)
 let status_pass ?(info="") () =
   status (color Green "Pass") info
 
@@ -168,7 +169,7 @@ let run tests =
         let execution_status =
           (match e with
           | Tiger_error.T e when is_error_expected e ->
-              status_pass () ~info:(Tiger_error.to_string e)
+              status_pass () (*~info:(Tiger_error.to_string e)*)
           | Tiger_error.T e ->
               incr failure_count;
               status_fail () ~info:(Tiger_error.to_string e)
@@ -194,7 +195,7 @@ let run tests =
             Option.map expect_output (fun expected -> expected = produced)
           with
           | None ->
-              status_skip () ~info:"expected output not provided"
+              status_skip () (*~info:"expected output not provided"*)
           | Some true ->
               status_pass ()
           | Some false ->
