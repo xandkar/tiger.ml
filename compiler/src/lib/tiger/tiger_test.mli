@@ -1,9 +1,9 @@
 type t
 
 val case
-  :  ?out_lexing  : Tiger_parser.token list
-  -> ?out_parsing : Tiger_absyn.t
-  -> ?is_error_expected_semant : (Tiger_error.t -> bool)
+  :  ?out_lexing  : Tiger_parser.token list option
+  -> ?out_parsing : Tiger_absyn.t option
+  -> ?is_error_expected_semant : (Tiger_error.t -> bool) option
   -> code         : string
   -> string
   -> t

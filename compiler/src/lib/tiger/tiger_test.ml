@@ -40,12 +40,13 @@ end = struct
     | Some x -> Some (f x)
 end
 
+(* TODO: ~expect:Output of 'a | Exception of (exn -> bool) *)
 type t =
   { name        : string
   ; code        : string
   ; out_lexing  : (Tiger_parser.token list) option
   ; out_parsing : Tiger_absyn.t option
-  ; is_error_expected_semant : (Tiger_error.t -> bool)
+  ; is_error_expected_semant : (Tiger_error.t -> bool) option
   }
 
 type color =
@@ -79,9 +80,9 @@ let status_skip ?(info="") () =
   status (color Yellow "Skip") info
 
 let case
-    ?(out_lexing)
-    ?(out_parsing)
-    ?(is_error_expected_semant=(fun _ -> false))
+    ?(out_lexing=None)
+    ?(out_parsing=None)
+    ?(is_error_expected_semant=None)
     ~code
     name
   =
@@ -100,8 +101,22 @@ let indent =
   fun n ->
     String.make (n * unit_spaces) ' '
 
-let pass_lexing code : (Tiger_parser.token list, string) result =
-  let lexbuf = Lexing.from_string code in
+let lexbuf_set_filename lb filename
+: unit
+=
+  let Lexing.({lex_start_p; lex_curr_p; _}) = lb in
+  lb.Lexing.lex_start_p <- {lex_start_p with Lexing.pos_fname = filename};
+  lb.Lexing.lex_curr_p  <- {lex_curr_p  with Lexing.pos_fname = filename}
+
+let lexbuf_create ~filename ~code =
+  let lb = Lexing.from_string code in
+  lexbuf_set_filename lb filename;
+  lb
+
+let pass_lexing ~fake_filename ~code
+: (Tiger_parser.token list, string) result
+=
+  let lexbuf = lexbuf_create ~filename:fake_filename ~code in
   let rec tokens () =
     let token = Tiger_lexer.token lexbuf in
     (* Avoiding fragile pattern-matching *)
@@ -111,8 +126,10 @@ let pass_lexing code : (Tiger_parser.token list, string) result =
   | exception e -> Error (Printexc.to_string e)
   | tokens      -> Ok tokens
 
-let pass_parsing code : (Tiger_absyn.t, string) result =
-  let lb = Lexing.from_string code in
+let pass_parsing ~fake_filename ~code
+: (Tiger_absyn.t, string) result
+=
+  let lb = lexbuf_create ~filename:fake_filename ~code in
   match Tiger_parser.program Tiger_lexer.token lb with
   | exception Parsing.Parse_error ->
       let module L = Lexing in
@@ -122,7 +139,9 @@ let pass_parsing code : (Tiger_absyn.t, string) result =
   | ast ->
       Ok ast
 
-let pass_semant (absyn_opt : Tiger_absyn.t option) : (unit, string) result =
+let pass_semant (absyn_opt : Tiger_absyn.t option)
+: (unit, string) result
+=
   match absyn_opt with
   | None ->
       Error "AST not provided"
@@ -136,10 +155,15 @@ let p_indent n = p "%s" (indent n)
 
 let run tests =
   let failure_count = ref 0 in
-  let run_pass ~f ~input ~expect_output ~is_error_expected =
+  let run_pass ~f ~expect_output ~is_error_expected =
+    let is_error_expected =
+      match is_error_expected with
+      | None -> (fun _ -> false)
+      | Some f -> f
+    in
     let output_status = "n/a" in
     let output_value  = None in
-    match f input with
+    match f () with
     | exception e ->
         let execution_status =
           (match e with
@@ -193,22 +217,19 @@ let run tests =
       incr test_case_count;
       let (stat_lex_exe, stat_lex_out_cmp, _) =
         run_pass
-          ~f:pass_lexing
-          ~input:code
+          ~f:(fun () -> pass_lexing ~fake_filename:name ~code)
           ~expect_output:out_lexing
-          ~is_error_expected:(fun _ -> false)
+          ~is_error_expected:None
       in
       let (stat_pars_exe, stat_pars_out_cmp, absyn_opt) =
         run_pass
-          ~f:pass_parsing
-          ~input:code
+          ~f:(fun () -> pass_parsing ~fake_filename:name ~code)
           ~expect_output:out_parsing
-          ~is_error_expected:(fun _ -> false)
+          ~is_error_expected:None
       in
       let (stat_semant_exe, stat_semant_out_cmp, _) =
         run_pass
-          ~f:pass_semant
-          ~input:absyn_opt
+          ~f:(fun () -> pass_semant absyn_opt)
           ~expect_output:(Some ())
           ~is_error_expected:is_error_expected_semant
       in
