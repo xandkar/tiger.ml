@@ -83,7 +83,7 @@ let micro =
         "
       in
       Test.case
-        code
+        "Incompatible records"
         ~code
         (* TODO: Be more specific *)
         ~is_error_expected_semant:(Some Error.is_wrong_type)
