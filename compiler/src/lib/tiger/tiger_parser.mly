@@ -312,6 +312,7 @@ exps:
   ;
 
 rec_fields_bind:
+  |                                 {                                   [] }
   | ID EQ exp                       { (Sym.of_string $1, $3, pos ()) :: [] }
   | ID EQ exp COMMA rec_fields_bind { (Sym.of_string $1, $3, pos ()) :: $5 }
   ;
