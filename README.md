@@ -14,7 +14,9 @@ Status
     - [x] semant stage
     - [ ] generalized expect `Output ('a option) | Exception of (exn -> bool)`
   - [x] run all book test case files 
-  - [ ] grid view (cols: lex, pars, semant, etc.; rows: test cases.) 
+  - [-] grid view (cols: lex, pars, semant, etc.; rows: test cases.) 
+    - [x] implementation
+    - [ ] refactoring
 - [ ] Travis CI
 
 ### Features

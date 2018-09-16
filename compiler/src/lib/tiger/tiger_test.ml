@@ -49,21 +49,56 @@ type t =
   ; is_error_expected_semant : (Tiger_error.t -> bool) option
   }
 
+type status =
+  | Pass
+  | Fail
+  | Skip
+
+type 'a t_result =
+  { exe_stat : status
+  ; exe_msg  : string
+  ; out_stat : status
+  ; out_val  : 'a option
+  ; out_msg  : string
+  }
+
 type color =
   | Red
+  | Red_bold
   | Yellow
   | Green
+  | Green_bold
+  | Grey_bold
 
 
 let color_to_ansi_code = function
-  | Red    -> "\027[0;31m"
-  | Yellow -> "\027[0;33m"
-  | Green  -> "\027[0;32m"
+  | Grey_bold  -> "\027[1;30m"
+  | Red        -> "\027[0;31m"
+  | Red_bold   -> "\027[1;31m"
+  | Yellow     -> "\027[0;33m"
+  | Green      -> "\027[0;32m"
+  | Green_bold -> "\027[1;32m"
+
+let color_off = "\027[0m"
 
 let color color string =
   let color_on  = color_to_ansi_code color in
-  let color_off = "\027[0m" in
   sprintf "%s%s%s" color_on string color_off
+
+let colorize str = function
+  | Some c -> (color_to_ansi_code c) ^ str ^ color_off
+  | None   -> str
+
+let status_to_color = function
+  | Pass -> Some Green_bold
+  | Fail -> Some Red_bold
+  | Skip -> Some Grey_bold
+
+let status_to_str = function
+  (* Expected to be a single character, but using string to allow unicode. *)
+  | Pass -> "✓"
+  | Fail -> "X"
+  | Skip -> "-"
 
 let status indicator info =
   match info with
@@ -72,14 +107,14 @@ let status indicator info =
 
 (* TODO: Perhaps a global option whether to print non-fail info? *)
 let status_pass ?(info="") () =
-  status (color Green "Pass") info
+  status (color Green "P") info
 
 let status_fail ?(info="") () =
-  status (color Red "Fail") info
+  status (color Red "F") info
 
 let status_skip ?(info="") () =
   (*let indicator = (color Yellow "Skip") in*)
-  let indicator = "Skip" in
+  let indicator = "S" in
   status indicator info
 
 let case
@@ -96,8 +131,9 @@ let case
   ; is_error_expected_semant
   }
 
-let bar_sep = String.make 80 '-'
-let bar_end = String.make 80 '='
+let bar_horiz_minor = color Grey_bold (String.make 80 '-')
+let bar_horiz_major = color Grey_bold (String.make 80 '=')
+let bar_vert        = color Grey_bold "|"
 
 let indent =
   let unit_spaces = 2 in
@@ -151,63 +187,104 @@ let pass_semant (absyn_opt : Tiger_absyn.t option)
   | Some absyn ->
       Ok (Tiger_semant.transProg absyn)
 
+let str_exact str exact =
+  let len = String.length str in
+  let take = if len > exact then exact else len in
+  let str = String.sub str 0 take in
+  let pad = exact - take in
+  let pad = String.make pad ' ' in
+  str ^ pad
+
 let s = sprintf
 let p = printf
 let p_ln = print_newline
 let p_indent n = p "%s" (indent n)
 
 let run tests =
-  let failure_count = ref 0 in
+  Printexc.record_backtrace true;
+  let count_fail_all = ref 0 in
   let run_pass ~f ~expect_output ~is_error_expected =
     let is_error_expected =
       match is_error_expected with
       | None -> (fun _ -> false)
       | Some f -> f
     in
-    let output_status = "n/a" in
-    let output_value  = None in
     match f () with
     | exception e ->
-        let execution_status =
+        let backtrace = Printexc.get_backtrace () in
+        let (exe_stat, exe_msg) =
           (match e with
           | Tiger_error.T e when is_error_expected e ->
-              status_pass () (*~info:(Tiger_error.to_string e)*)
+              (Pass, (Tiger_error.to_string e))
           | Tiger_error.T e ->
-              incr failure_count;
-              status_fail () ~info:(Tiger_error.to_string e)
+              incr count_fail_all;
+              (Fail, (Tiger_error.to_string e))
           | e ->
-              incr failure_count;
-              status_fail () ~info:(Printexc.to_string e)
+              incr count_fail_all;
+              (Fail, (Printexc.to_string e))
           )
         in
-        ( execution_status
-        , output_status
-        , output_value
-        )
+        { exe_stat
+        ; exe_msg  = s "\n\tException: %s.\n\tBacktrace: %s" exe_msg backtrace
+        ; out_stat = Skip
+        ; out_val  = None
+        ; out_msg  = ""  (* old "info" goes here *)
+        }
     | Error info ->
-        incr failure_count;
-        ( status_fail ~info ()
-        , output_status
-        , output_value
-        )
+        incr count_fail_all;
+        { exe_stat = Fail
+        ; exe_msg  = info
+        ; out_stat = Skip
+        ; out_val  = None
+        ; out_msg  = ""  (* old "info" goes here *)
+        }
     | Ok produced ->
-        let execution_status = status_pass () in
-        let output_status =
+        let (out_stat, out_msg) =
           match
             Option.map expect_output (fun expected -> expected = produced)
           with
           | None ->
-              status_skip () (*~info:"expected output not provided"*)
+              (Skip, "expected output not provided")
           | Some true ->
-              status_pass ()
+              (Pass, "")
           | Some false ->
-              incr failure_count;
-              status_fail ()
+              incr count_fail_all;
+              (* TODO pretty print expected and produced *)
+              (Fail, "unexpected output")
         in
-        let output_value = Some produced in
-        (execution_status, output_status, output_value)
+        { exe_stat = Pass
+        ; exe_msg  = ""  (* old "info" goes here *)
+        ; out_stat
+        ; out_val  = Some produced
+        ; out_msg
+        }
   in
   let test_case_count = ref 0 in
+  let col_1_width = 25 in
+  let col_i_width = 10 in
+  let p_stat width (exe, out) =
+    (* All this gymnastics to ignore color codes in cell width *)
+    let min = 5 in
+    let width = if width > min then width else min in
+    p "%s" (String.concat "" (List.init ~len:width ~f:(function
+      | 0 -> " "
+      | 1 -> bar_vert
+      | 2 -> " "
+      | 3 -> colorize (status_to_str exe) (status_to_color exe)
+      | 4 -> colorize (status_to_str out) (status_to_color out)
+      | _ -> " "
+    )))
+
+  in
+  p "%s" bar_horiz_major; p_ln ();
+  p "%s" (str_exact "Test case" col_1_width);
+  List.iter ~f:(fun header -> p " %s %s" bar_vert header)
+    [ "Lexing"
+    ; "Parsing"
+    ; "Semant"
+    ];
+  p_ln ();
+  p "%s" bar_horiz_major; p_ln ();
   List.iter tests ~f:(
     fun
       { name
@@ -218,45 +295,66 @@ let run tests =
       }
     ->
       incr test_case_count;
-      let (stat_lex_exe, stat_lex_out_cmp, _) =
+      let res_lex =
         run_pass
           ~f:(fun () -> pass_lexing ~fake_filename:name ~code)
           ~expect_output:out_lexing
           ~is_error_expected:None
       in
-      let (stat_pars_exe, stat_pars_out_cmp, absyn_opt) =
+      let res_pars =
         run_pass
           ~f:(fun () -> pass_parsing ~fake_filename:name ~code)
           ~expect_output:out_parsing
           ~is_error_expected:None
       in
-      let (stat_semant_exe, stat_semant_out_cmp, _) =
+      let res_sem =
         run_pass
-          ~f:(fun () -> pass_semant absyn_opt)
+          ~f:(fun () -> pass_semant res_pars.out_val)
           ~expect_output:(Some ())
           ~is_error_expected:is_error_expected_semant
       in
-      p "%s" bar_sep; p_ln ();
-      p "Test: %S" name; p_ln ();
-        p_indent 1; p "Lexing:"; p_ln ();
-          p_indent 2; p "exe: %s" stat_lex_exe    ; p_ln ();
-          p_indent 2; p "out: %s" stat_lex_out_cmp; p_ln ();
-        p_indent 1; p "Parsing:"; p_ln ();
-          p_indent 2; p "exe: %s" stat_pars_exe    ; p_ln ();
-          p_indent 2; p "out: %s" stat_pars_out_cmp; p_ln ();
-        p_indent 1; p "Semantic Analysis:"; p_ln ();
-          p_indent 2; p "exe: %s" stat_semant_exe    ; p_ln ();
-          p_indent 2; p "out: %s" stat_semant_out_cmp; p_ln ();
+      let results =
+        (* Replacing out_val for type compatibility *)
+        [ "Lexing"  , {res_lex  with out_val = None}
+        ; "Parsing" , {res_pars with out_val = None}
+        ; "Semant"  , {res_sem  with out_val = None}
+        ]
+      in
+      if !test_case_count > 1 then (p "%s" bar_horiz_minor; p_ln ());
+      p "%s" (str_exact name col_1_width);
+      List.iter results ~f:(fun (stage, {exe_stat=e; out_stat=o; _}) ->
+        p_stat ((String.length stage) + 3) (e, o)
+      );
+      p_ln ();
+      let printed_error = ref false in
+      List.iter results ~f:(
+        fun (stage, {exe_stat; exe_msg; out_stat; out_msg; _}) ->
+          (match exe_stat with
+          | Pass -> ()
+          | Skip -> ()
+          | Fail ->
+              printed_error := true;
+              p "%s: %s" (color Grey_bold stage) (color Red exe_msg);
+              p_ln ()
+          );
+          (match out_stat with
+          | Pass -> ()
+          | Skip -> ()
+          | Fail ->
+              printed_error := true;
+              p "%s: %s" (color Grey_bold stage) (color Red out_msg)
+          );
+      );
   );
-  p "%s" bar_end; p_ln ();
+  p "%s" bar_horiz_major; p_ln ();
   p "%s"
     ( let info =
-        s "%d failures in %d test cases" !failure_count !test_case_count
+        s "%d failures in %d test cases" !count_fail_all !test_case_count
       in
-      match !failure_count with
+      match !count_fail_all with
       | 0 -> status_pass () ~info
       | _ -> status_fail () ~info
     );
     p_ln ();
-  p "%s" bar_end; p_ln ();
-  exit !failure_count
+  p "%s" bar_horiz_major; p_ln ();
+  exit !count_fail_all

@@ -1,10 +1,10 @@
 MAKEFLAGS := --no-builtin-rules
 
-EXE_TYPE              := byte  # byte | native
+EXE_TYPE              := native  # byte | native
 EXECUTABLES           := tigerc tigert
 OCAMLBUILD_FLAGS_PKGS := -pkg unix
 OCAMLBUILD_FLAGS_DIRS := -I src/exe -I src/lib/tiger
-OCAMLBUILD_FLAGS_COMP := -cflags '-w A'
+OCAMLBUILD_FLAGS_COMP := -cflags '-g -w A'
 OCAMLBUILD_FLAGS_YACC := -yaccflag '-v'
 OCAMLBUILD            := \
   ocamlbuild \
