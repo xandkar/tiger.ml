@@ -3,6 +3,7 @@ module List = ListLabels
 module A         = Tiger_absyn
 module Env       = Tiger_env
 module E         = Tiger_error
+module Symbol    = Tiger_symbol
 module Translate = Tiger_translate
 module Type      = Tiger_env_type
 module Value     = Tiger_env_value
@@ -32,6 +33,23 @@ end = struct
     ; ty  : Type.t
     }
 
+  let rec actual_ty ty ~pos =
+    match ty with
+    | Type.Name (name, ty_opt_ref) ->
+        (match !ty_opt_ref with
+        | None ->
+            E.raise (E.Unknown_type {ty_id=name; pos})
+        | Some ty ->
+            actual_ty ty ~pos
+        )
+    | Type.Unit
+    | Type.Nil
+    | Type.Int
+    | Type.String
+    | Type.Record _
+    | Type.Array _ ->
+        ty
+
   let return ty     = {exp = (); ty}
   let return_unit   = return Type.Unit
   let return_nil    = return Type.Nil
@@ -42,6 +60,9 @@ end = struct
     match Env.get_typ env sym with
     | Some ty -> ty
     | None    -> E.raise (E.Unknown_type {ty_id=sym; pos})
+
+  let env_get_typ_actual ~sym ~env ~pos : Type.t =
+    actual_ty (env_get_typ ~sym ~env ~pos) ~pos
 
   let env_get_val ~sym ~env ~pos : Value.t =
     match Env.get_val env sym with
@@ -55,10 +76,7 @@ end = struct
       E.raise (E.Wrong_type {expected=ty_left; given=ty_right; pos})
 
   let check_int expty ~pos : unit =
-    check_same {exp=(); ty=Type.Int} expty ~pos
-
-  (* TODO: actual_ty *)
-  (* TODO: mutual recursion *)
+    check_same return_int expty ~pos
 
   let rec transExp ~env exp =
     let rec trexp exp =
@@ -73,23 +91,23 @@ end = struct
           (match env_get_val ~sym:func ~env ~pos with
           | Value.Fun {formals; result} ->
               List.iter2 formals args ~f:(fun ty_expected exp_given ->
-                check_same {exp=(); ty = ty_expected} (trexp exp_given) ~pos;
+                check_same (return (actual_ty ~pos ty_expected)) (trexp exp_given) ~pos;
               );
-              return result
+              return (actual_ty ~pos result)
           | Value.Var _ ->
               E.raise (E.Id_not_a_function {id=func; pos})
           )
       | A.OpExp {oper; left; right; pos} ->
           trop oper ~left ~right ~pos
       | A.RecordExp {fields=field_exps; typ; pos} ->
-          let ty = env_get_typ ~sym:typ ~env ~pos in
+          let ty = env_get_typ_actual ~sym:typ ~env ~pos in
           Type.if_record
             ty
             ~f:(fun field_tys ->
               List.iter field_exps ~f:(fun (field, exp, pos) ->
                 (match List.assoc_opt field field_tys with
                 | Some field_ty ->
-                    check_same {exp=(); ty=field_ty} (trexp exp) ~pos
+                    check_same (return (actual_ty ~pos field_ty)) (trexp exp) ~pos
                 | None ->
                     E.raise
                       (E.No_such_field_in_record {field; record=ty; pos})
@@ -99,7 +117,7 @@ end = struct
             ~otherwise:(fun () ->
               E.raise (E.Wrong_type_used_as_record {ty_id=typ; ty; pos})
             );
-          return ty
+          return (actual_ty ~pos ty)
       | A.SeqExp [] ->
           return_unit
       | A.SeqExp exps ->
@@ -109,9 +127,8 @@ end = struct
             |> List.hd   (* Empty is matched in above SeqExp match case *)
           in
           exps
-          |> List.map ~f:(fun (exp, _) -> let {ty; _} = trexp exp in ty)
+          |> List.map ~f:(fun (exp, _) -> trexp exp)
           |> last
-          |> return
       | A.AssignExp {var; exp; pos} ->
           check_same (trvar var) (trexp exp) ~pos;
           (* TODO: Add var->exp to val env? *)
@@ -152,16 +169,16 @@ end = struct
           transExp body ~env
       | A.ArrayExp {typ; size; init; pos} ->
           check_int (trexp size) ~pos;
-          let ty = env_get_typ ~sym:typ ~env ~pos in
+          let ty = env_get_typ_actual ~sym:typ ~env ~pos in
           Type.if_array
             ty
             ~f:(fun ty_elements ->
-              check_same {exp=(); ty=ty_elements} (trexp init) ~pos
+              check_same (return (actual_ty ~pos ty_elements)) (trexp init) ~pos
             )
             ~otherwise:(fun () ->
               E.raise (E.Wrong_type_used_as_array {ty_id=typ; ty; pos})
             );
-          return ty
+          return (actual_ty ~pos ty)
       | A.VarExp var ->
           trvar var
       )
@@ -170,7 +187,7 @@ end = struct
       | A.SimpleVar {symbol=sym; pos} ->
           (match env_get_val ~sym ~env ~pos with
           | Value.Fun _    -> E.raise (E.Id_is_a_function {id=sym; pos})
-          | Value.Var {ty} -> return ty
+          | Value.Var {ty} -> return (actual_ty ~pos ty)
           )
       | A.FieldVar {var; symbol; pos} ->
           let {exp=_; ty} = trvar var in
@@ -182,7 +199,7 @@ end = struct
                   E.raise
                     (E.No_such_field_in_record {field=symbol; record=ty; pos})
               | Some ty ->
-                  return ty
+                  return (actual_ty ~pos ty)
               )
             )
             ~otherwise:(fun () -> E.raise (E.Exp_not_a_record {ty; pos}))
@@ -191,10 +208,11 @@ end = struct
           check_int (trexp exp) ~pos;
           Type.if_array
             ty
-            ~f:(fun ty_elements -> return ty_elements)
+            ~f:(fun ty_elements -> return (actual_ty ~pos ty_elements))
             ~otherwise:(fun () -> E.raise (E.Exp_not_an_array {ty; pos}))
       )
     and trop oper ~left ~right ~pos =
+      (* TODO: Refactor trop - all opers return bool/int *)
       let expty_left  = trexp left in
       let expty_right = trexp right in
       check_same expty_left expty_right ~pos;
@@ -216,7 +234,7 @@ end = struct
           || (T.is_array  ty)
           || (T.is_record ty)
           then
-            return ty
+            return_int  (* Because we have no bool type *)
           else
             E.raise (E.Invalid_operand_type
               { oper
@@ -232,7 +250,7 @@ end = struct
           if (T.is_int    ty)
           || (T.is_string ty)
           then
-            return ty
+            return_int  (* Because we have no bool type *)
           else
             E.raise (E.Invalid_operand_type
               { oper
@@ -251,25 +269,41 @@ end = struct
           | None, {ty; exp=()} ->
               ty
           | Some (sym, pos_inner), expty_init ->
-              let ty = env_get_typ ~sym ~env ~pos:pos_inner in
-              check_same {exp=(); ty} expty_init ~pos:pos_outter;
+              let ty = env_get_typ_actual ~sym ~env ~pos:pos_inner in
+              check_same (return ty) expty_init ~pos:pos_outter;
               ty
           )
         in
         Env.set_val env name (Value.Var {ty})
     | A.TypeDecs typedecs ->
-        List.fold_left typedecs ~init:env ~f:(
-          fun env (A.TypeDec {name; ty; pos=_}) ->
-            let ty = transTy ~env ty in
-            Env.set_typ env name ty
-        )
+        let env =
+          List.fold_left typedecs ~init:env ~f:(
+            fun env (A.TypeDec {name; ty=_; pos=_}) ->
+              Env.set_typ env name (Type.Name (name, ref None))
+          )
+        in
+        List.iter typedecs ~f:(fun (A.TypeDec {name; ty=ty_exp; pos}) ->
+          let ty = transTy ~env ty_exp in
+          (match env_get_typ ~sym:name ~env ~pos with
+          | Type.Name (name, ty_opt_ref) ->
+              ty_opt_ref := Some ty
+          | Type.Unit
+          | Type.Nil
+          | Type.Int
+          | Type.String
+          | Type.Record _
+          | Type.Array _ ->
+              ()
+          )
+        );
+        env
     | A.FunDecs fundecs ->
         List.fold_left fundecs ~init:env ~f:(
           fun env (A.FunDec {name; params; result; body; pos=_}) ->
             let (env_for_body, formals_in_reverse_order) =
               List.fold_left params ~init:(env, []) ~f:(
                 fun (env, formals) (A.Field {name; escape=_; typ; pos}) ->
-                  let ty = env_get_typ ~env ~sym:typ ~pos in
+                  let ty = env_get_typ_actual ~env ~sym:typ ~pos in
                   let env = Env.set_val env name (Value.Var {ty}) in
                   (env, ty :: formals)
               )
@@ -282,13 +316,13 @@ end = struct
               | None ->
                   Type.Unit
               | Some (sym, pos) ->
-                  env_get_typ ~sym ~env ~pos
+                  env_get_typ_actual ~sym ~env ~pos
             in
             Env.set_val env name (Value.Fun {formals; result})
         )
     )
-  and transTy ~(env : Env.t) (typ : A.ty) : Type.t =
-    (match typ with
+  and transTy ~(env : Env.t) (ty_exp : A.ty) : Type.t =
+    (match ty_exp with
     | A.NameTy {symbol=sym; pos} ->
         env_get_typ ~sym ~env ~pos
     | A.RecordTy fields ->

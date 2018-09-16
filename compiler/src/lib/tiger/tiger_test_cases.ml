@@ -55,21 +55,19 @@ let micro =
           (Some [ID "f"; LPAREN; STRING "a"; COMMA; INT 3; COMMA; ID "foo"; RPAREN])
         ~is_error_expected_semant:(Some Error.is_unknown_id)
     )
-  ; ( let code =
-        "let \
-            type a = int \
-            type b = a \
-            type c = b \
-            var i : a := 2 \
-            var j : c := 3 \
-        in \
-            i := j \
-        end \
-        "
-      in
-      Test.case
+  ; ( Test.case
         "Type aliases"
-        ~code
+        ~code:
+          "let \
+              type a = int \
+              type b = a \
+              type c = b \
+              var i : a := 2 \
+              var j : c := 3 \
+          in \
+              i := j \
+          end \
+          "
     )
   ; ( let code =
         "let \

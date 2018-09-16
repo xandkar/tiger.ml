@@ -45,7 +45,10 @@ let new_array ty =
 
 let is_equal t1 t2 =
   match t1, t2 with
+  | Name   (s1, _)       ,  Name   (s2, _)        -> Symbol.is_equal s1 s2
   | Record {unique=u1; _},  Record {unique=u2; _} -> u1 == u2
+  | Record _             ,  Nil                   -> true
+  | Nil                  ,  Record _              -> true
   | Array  {unique=u1; _},  Array  {unique=u2; _} -> u1 == u2
   | t1                   , t2                     -> t1 =  t2
   (* The above pattern matching is "fragile" and I'm OK with it.

@@ -21,3 +21,6 @@ let of_string name =
 
 let to_string {name; _} =
   name
+
+let is_equal {symbol=s1; _} {symbol=s2; _} =
+  s1 = s2
