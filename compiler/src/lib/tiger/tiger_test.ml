@@ -181,14 +181,10 @@ let pass_parsing ~fake_filename ~code
   | ast ->
       Ok ast
 
-let pass_semant (absyn_opt : Tiger_absyn.t option)
+let pass_semant (absyn : Tiger_absyn.t)
 : (unit, string) result
 =
-  match absyn_opt with
-  | None ->
-      Error "AST not provided"
-  | Some absyn ->
-      Ok (Tiger_semant.transProg absyn)
+  Ok (Tiger_semant.transProg absyn)
 
 let str_exact str exact =
   let len = String.length str in
@@ -312,10 +308,20 @@ let run tests =
           ~is_error_expected:is_error_expected_parsing
       in
       let res_sem =
-        run_pass
-          ~f:(fun () -> pass_semant res_pars.out_val)
-          ~expect_output:(Some ())
-          ~is_error_expected:is_error_expected_semant
+        (* TODO: Replace this hack with general test-dependency checking *)
+        match res_pars.out_val with
+        | None ->
+            { exe_stat = Skip
+            ; exe_msg  = "No AST provided"
+            ; out_stat = Skip
+            ; out_val  = None
+            ; out_msg  = ""
+            }
+        | Some absyn ->
+            run_pass
+              ~f:(fun () -> pass_semant absyn)
+              ~expect_output:(Some ())
+              ~is_error_expected:is_error_expected_semant
       in
       let results =
         (* Replacing out_val for type compatibility *)
