@@ -1,5 +1,6 @@
 module List = ListLabels
 
+module Error = Tiger_error
 module Test = Tiger_test
 
 let read_file filepath =
@@ -90,9 +91,15 @@ let is_error_expected_parsing_of_filename =
     (* TODO: Fill-in other expected cases *)
     None
 
-let is_error_expected_semant_of_filename _ =
-  (* TODO: Fill-in expected cases *)
-  None
+let is_error_expected_semant_of_filename =
+  let module E = Tiger_error in
+  function
+  | "test43.tig" ->
+      Some Error.is_wrong_type
+      (* TODO: Be more specific - what expected, what given? *)
+  | _ ->
+    (* TODO: Fill-in other expected cases *)
+    None
 
 let test_case_of_filename filename ~dir =
   Test.case
