@@ -46,6 +46,7 @@ type t =
   ; code        : string
   ; out_lexing  : (Tiger_parser.token list) option
   ; out_parsing : Tiger_absyn.t option
+  ; is_error_expected_parsing : (Tiger_error.t -> bool) option
   ; is_error_expected_semant : (Tiger_error.t -> bool) option
   }
 
@@ -120,6 +121,7 @@ let status_skip ?(info="") () =
 let case
     ?(out_lexing=None)
     ?(out_parsing=None)
+    ?(is_error_expected_parsing=None)
     ?(is_error_expected_semant=None)
     ~code
     name
@@ -128,6 +130,7 @@ let case
   ; code
   ; out_lexing
   ; out_parsing
+  ; is_error_expected_parsing
   ; is_error_expected_semant
   }
 
@@ -291,6 +294,7 @@ let run tests =
       ; code
       ; out_lexing
       ; out_parsing
+      ; is_error_expected_parsing
       ; is_error_expected_semant
       }
     ->
@@ -305,7 +309,7 @@ let run tests =
         run_pass
           ~f:(fun () -> pass_parsing ~fake_filename:name ~code)
           ~expect_output:out_parsing
-          ~is_error_expected:None
+          ~is_error_expected:is_error_expected_parsing
       in
       let res_sem =
         run_pass

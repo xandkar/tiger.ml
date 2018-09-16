@@ -80,6 +80,16 @@ let out_parsing_of_filename _ =
   (* TODO: Fill-in expected cases *)
   None
 
+let is_error_expected_parsing_of_filename =
+  let module E = Tiger_error in
+  function
+  | "test49.tig" ->
+      Some (function E.Invalid_syntax _ -> true | _ -> false)
+      (* TODO: Be more specific - test position *)
+  | _ ->
+    (* TODO: Fill-in other expected cases *)
+    None
+
 let is_error_expected_semant_of_filename _ =
   (* TODO: Fill-in expected cases *)
   None
@@ -90,6 +100,7 @@ let test_case_of_filename filename ~dir =
     ~code:(read_file (Filename.concat dir filename))
     ~out_lexing:(out_lexing_of_filename filename)
     ~out_parsing:(out_parsing_of_filename filename)
+    ~is_error_expected_parsing:(is_error_expected_parsing_of_filename filename)
     ~is_error_expected_semant:(is_error_expected_semant_of_filename filename)
 
 let read ~from_dir:dir =
