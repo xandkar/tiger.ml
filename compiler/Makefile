@@ -1,5 +1,7 @@
 MAKEFLAGS := --no-builtin-rules
 
+DIR_TEST_CASES := ./testcases
+
 EXE_TYPE              := native  # byte | native
 EXECUTABLES           := tigerc tigert
 OCAMLBUILD_FLAGS_PKGS := -pkg unix
@@ -17,6 +19,9 @@ OCAMLBUILD            := \
   all \
   build \
   clean \
+  test_all \
+  test_book \
+  test_micro \
   test
 
 all: clean
@@ -32,5 +37,13 @@ clean:
 	@$(OCAMLBUILD) -clean
 	@rm -rf ./bin
 
-test: build
-	@./bin/exe/tigert
+test: test_all
+
+test_all: build
+	@./bin/exe/tigert all -dir $(DIR_TEST_CASES)
+
+test_book: build
+	@./bin/exe/tigert book -dir $(DIR_TEST_CASES)
+
+test_micro: build
+	@./bin/exe/tigert micro
