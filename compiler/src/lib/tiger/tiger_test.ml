@@ -21,6 +21,7 @@
  * out foo  | OK     | ... | ERROR
  *
  * *)
+(* TODO: Perhaps a global option whether to print non-fail info? *)
 
 open Printf
 
@@ -86,7 +87,7 @@ let color color string =
   let color_on  = color_to_ansi_code color in
   sprintf "%s%s%s" color_on string color_off
 
-let colorize str = function
+let color_opt str = function
   | Some c -> (color_to_ansi_code c) ^ str ^ color_off
   | None   -> str
 
@@ -105,18 +106,6 @@ let status indicator info =
   match info with
   | "" -> indicator
   | _  -> sprintf "%s: %s" indicator info
-
-(* TODO: Perhaps a global option whether to print non-fail info? *)
-let status_pass ?(info="") () =
-  status (color Green "P") info
-
-let status_fail ?(info="") () =
-  status (color Red "F") info
-
-let status_skip ?(info="") () =
-  (*let indicator = (color Yellow "Skip") in*)
-  let indicator = "S" in
-  status indicator info
 
 let case
     ?(out_lexing=None)
@@ -269,8 +258,8 @@ let run tests =
       | 0 -> " "
       | 1 -> bar_vert
       | 2 -> " "
-      | 3 -> colorize (status_to_str exe) (status_to_color exe)
-      | 4 -> colorize (status_to_str out) (status_to_color out)
+      | 3 -> color_opt (status_to_str exe) (status_to_color exe)
+      | 4 -> color_opt (status_to_str out) (status_to_color out)
       | _ -> " "
     )))
 
@@ -357,14 +346,13 @@ let run tests =
       );
   );
   p "%s" bar_horiz_major; p_ln ();
-  p "%s"
-    ( let info =
-        s "%d failures in %d test cases" !count_fail_all !test_case_count
-      in
-      match !count_fail_all with
-      | 0 -> status_pass () ~info
-      | _ -> status_fail () ~info
-    );
+  p "%s %d failures in %d test cases"
+      (match !count_fail_all with
+      | 0 -> color_opt (status_to_str Pass) (status_to_color Pass)
+      | _ -> color_opt (status_to_str Fail) (status_to_color Fail)
+      )
+      !count_fail_all
+      !test_case_count;
     p_ln ();
   p "%s" bar_horiz_major; p_ln ();
   exit !count_fail_all
