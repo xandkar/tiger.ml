@@ -91,9 +91,22 @@ let is_error_expected_parsing_of_filename =
     (* TODO: Fill-in other expected cases *)
     None
 
+(* TODO test21.tig - error : procedure returns value  and procedure is used in arexpr *)
+(* TODO test22.tig - No_such_field_in_record *)
+(* TODO test24.tig - Exp_not_an_array *)
+(* TODO test25.tig - Exp_not_a_record *)
+
 let is_error_expected_semant_of_filename =
   let module E = Tiger_error in
   function
+  | "test09.tig"
+  | "test23.tig"
+  | "test26.tig"
+  | "test28.tig"
+  | "test29.tig"
+  | "test31.tig"
+  | "test32.tig"
+  | "test34.tig"
   | "test43.tig" ->
       Some Error.is_wrong_type
       (* TODO: Be more specific - what expected, what given? *)
