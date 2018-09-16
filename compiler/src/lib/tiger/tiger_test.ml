@@ -67,8 +67,6 @@ type 'a t_result =
 type color =
   | Red
   | Red_bold
-  | Yellow
-  | Green
   | Green_bold
   | Grey_bold
 
@@ -77,8 +75,6 @@ let color_to_ansi_code = function
   | Grey_bold  -> "\027[1;30m"
   | Red        -> "\027[0;31m"
   | Red_bold   -> "\027[1;31m"
-  | Yellow     -> "\027[0;33m"
-  | Green      -> "\027[0;32m"
   | Green_bold -> "\027[1;32m"
 
 let color_off = "\027[0m"
@@ -102,11 +98,6 @@ let status_to_str = function
   | Fail -> "X"
   | Skip -> "-"
 
-let status indicator info =
-  match info with
-  | "" -> indicator
-  | _  -> sprintf "%s: %s" indicator info
-
 let case
     ?(out_lexing=None)
     ?(out_parsing=None)
@@ -126,11 +117,6 @@ let case
 let bar_horiz_minor = color Grey_bold (String.make 80 '-')
 let bar_horiz_major = color Grey_bold (String.make 80 '=')
 let bar_vert        = color Grey_bold "|"
-
-let indent =
-  let unit_spaces = 2 in
-  fun n ->
-    String.make (n * unit_spaces) ' '
 
 let lexbuf_set_filename lb filename
 : unit
@@ -178,7 +164,7 @@ let pass_semant (absyn : Tiger_absyn.t)
 let str_exact str exact =
   let len = String.length str in
   let take = if len > exact then exact else len in
-  let str = String.sub str 0 take in
+  let str = String.sub str ~pos:0 ~len:take in
   let pad = exact - take in
   let pad = String.make pad ' ' in
   str ^ pad
@@ -186,7 +172,6 @@ let str_exact str exact =
 let s = sprintf
 let p = printf
 let p_ln = print_newline
-let p_indent n = p "%s" (indent n)
 
 let run tests =
   Printexc.record_backtrace true;
@@ -249,12 +234,11 @@ let run tests =
   in
   let test_case_count = ref 0 in
   let col_1_width = 25 in
-  let col_i_width = 10 in
   let p_stat width (exe, out) =
     (* All this gymnastics to ignore color codes in cell width *)
     let min = 5 in
     let width = if width > min then width else min in
-    p "%s" (String.concat "" (List.init ~len:width ~f:(function
+    p "%s" (String.concat ~sep:"" (List.init ~len:width ~f:(function
       | 0 -> " "
       | 1 -> bar_vert
       | 2 -> " "
