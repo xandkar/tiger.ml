@@ -88,6 +88,16 @@ let micro =
         (* TODO: Be more specific *)
         ~is_error_expected_semant:(Some Error.is_wrong_type)
     )
+  ; ( Test.case
+        "Recursive type def: int list"
+        ~code:"\
+          let \n\
+            type intlist = {hd: int, tl: intlist} \n\
+            var lst : intlist := intlist {hd=0, tl = nil} \n\
+          in \n\
+            lst \n\
+          end"
+    )
   ]
 
 let book ~dir =

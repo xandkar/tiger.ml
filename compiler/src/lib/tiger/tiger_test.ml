@@ -233,7 +233,7 @@ let run tests =
         }
   in
   let test_case_count = ref 0 in
-  let col_1_width = 25 in
+  let col_1_width = 30 in
   let p_stat width (exe, out) =
     (* All this gymnastics to ignore color codes in cell width *)
     let min = 5 in
