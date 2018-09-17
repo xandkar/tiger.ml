@@ -129,8 +129,20 @@ let test_case_of_filename filename ~dir =
     ~is_error_expected_parsing:(is_error_expected_parsing_of_filename filename)
     ~is_error_expected_semant:(is_error_expected_semant_of_filename filename)
 
+let is_filename_starts_with_dot filename =
+  match filename.[0] with
+  | exception Invalid_argument _ ->
+      (* Filename should not be an empty string *)
+      assert false
+  | '.' -> true
+  | _   -> false
+
+let is_filename_not_hidden filename =
+  not (is_filename_starts_with_dot filename)
+
 let read ~from_dir:dir =
   Sys.readdir dir
   |> Array.to_list
+  |> List.filter ~f:is_filename_not_hidden
   |> List.sort ~cmp:compare
   |> List.map ~f:(test_case_of_filename ~dir)
