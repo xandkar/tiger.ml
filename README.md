@@ -5,19 +5,9 @@ A Tiger-compiler implementation in (OCa)ML
 Status
 ------
 
-### Technical issues
-- [-] testing framework
-  - [x] run arbitrary code snippets
-  - [x] check non-failures
-  - [x] check expected output
-  - [-] check expected exceptions
-    - [x] semant stage
-    - [ ] generalized expect `Output ('a option) | Exception of (exn -> bool)`
-  - [x] run all book test case files 
-  - [-] grid view (cols: lex, pars, semant, etc.; rows: test cases.) 
-    - [x] implementation
-    - [ ] refactoring
-- [ ] Travis CI
+![screenshot-tests-semant-done-head](screenshots/tests-semant-done-head.jpg)
+...
+![screenshot-tests-semant-done-tail](screenshots/tests-semant-done-tail.jpg)
 
 ### Features
 #### Done
@@ -25,10 +15,10 @@ Status
 - [x] ch 2: Lexer
 - [x] ch 3: Parser
 - [x] ch 4: AST
+- [x] ch 5: Semantic Analysis (type checking)
 #### In-progress
-- [-] ch 5: Semantic Analysis (type checking)
-#### TODO (short-term)
 - [ ] ch 6: Activation Records
+#### TODO (short-term)
 - [ ] ch 7: Translation to Intermediate Code
 - [ ] ch 08: Basic Blocks and Traces
 - [ ] ch 09: Instruction Selection
@@ -46,6 +36,20 @@ Status
 - [ ] ch 21: The Memory Hierarchy
 #### Maybe
 - [ ] ch 14: Object-Oriented Languages
+
+### Technical issues
+- [-] testing framework
+  - [x] run arbitrary code snippets
+  - [x] check non-failures
+  - [x] check expected output
+  - [-] check expected exceptions
+    - [x] semant stage
+    - [ ] generalized expect `Output ('a option) | Exception of (exn -> bool)`
+  - [x] run all book test case files 
+  - [-] grid view (cols: lex, pars, semant, etc.; rows: test cases.) 
+    - [x] implementation
+    - [ ] refactoring
+- [ ] Travis CI
 
 Implementation Notes
 --------------------
