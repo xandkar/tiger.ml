@@ -85,7 +85,7 @@ let is_error_expected_parsing_of_filename =
   let module E = Tiger_error in
   function
   | "test49.tig" ->
-      Some (function E.Invalid_syntax _ -> true | _ -> false)
+      Some Error.is_invalid_syntax
       (* TODO: Be more specific - test position *)
   | _ ->
     (* TODO: Fill-in other expected cases *)
