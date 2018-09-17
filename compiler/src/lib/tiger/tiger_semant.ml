@@ -90,10 +90,20 @@ end = struct
       | A.CallExp {func; args; pos} ->
           (match env_get_val ~sym:func ~env ~pos with
           | Value.Fun {formals; result} ->
-              List.iter2 formals args ~f:(fun ty_expected exp_given ->
-                check_same (return (actual_ty ~pos ty_expected)) (trexp exp_given) ~pos;
-              );
-              return (actual_ty ~pos result)
+              let expected = List.length formals in
+              let given    = List.length args in
+              if given = expected then
+                begin
+                  List.iter2 formals args ~f:(fun ty_expected exp_given ->
+                    check_same
+                      (return (actual_ty ~pos ty_expected))
+                      (trexp exp_given)
+                      ~pos;
+                  );
+                  return (actual_ty ~pos result)
+                end
+              else
+                E.raise (E.Wrong_number_of_args {func; expected; given; pos})
           | Value.Var _ ->
               E.raise (E.Id_not_a_function {id=func; pos})
           )

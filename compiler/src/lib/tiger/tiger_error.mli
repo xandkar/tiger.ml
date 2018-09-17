@@ -73,6 +73,7 @@ val to_string : t -> string
 val is_unknown_id   : t -> bool
 val is_unknown_type : t -> bool
 val is_wrong_type   : t -> bool
+val is_wrong_number_of_args : t -> bool
 val is_invalid_syntax : t -> bool
 val is_not_a_record : t -> bool
 val is_not_an_array : t -> bool

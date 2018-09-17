@@ -214,6 +214,28 @@ let is_wrong_type t =
   | Different_operand_types _ ->
       false
 
+let is_wrong_number_of_args t =
+  match t with
+  | Wrong_number_of_args _ ->
+      true
+  | Wrong_type _
+  | Unknown_type _
+  | Unknown_id _
+  | Invalid_syntax _
+  | Id_is_a_function _
+  | Id_not_a_function _
+  | No_such_field_in_record _
+  | Exp_not_a_record _
+  | Exp_not_an_array _
+  | Wrong_type_of_expression_in_var_dec _
+  | Wrong_type_used_as_array _
+  | Wrong_type_used_as_record _
+  | Wrong_type_of_field_value _
+  | Wrong_type_of_arg _
+  | Invalid_operand_type _
+  | Different_operand_types _ ->
+      false
+
 let is_invalid_syntax t =
   match t with
   | Invalid_syntax _ ->

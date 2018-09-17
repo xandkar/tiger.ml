@@ -113,6 +113,10 @@ let is_error_expected_semant_of_filename =
   | "test25.tig" ->
       Some Error.is_not_a_record
       (* TODO: Be more specific *)
+  | "test35.tig"
+  | "test36.tig" ->
+      Some Error.is_wrong_number_of_args
+      (* TODO: Be more specific - how many expected, how many given? *)
   | "test09.tig"
   | "test11.tig"
   | "test13.tig"
