@@ -307,28 +307,36 @@ end = struct
         );
         env
     | A.FunDecs fundecs ->
-        List.fold_left fundecs ~init:env ~f:(
-          fun env (A.FunDec {name; params; result; body; pos=_}) ->
-            let (env_for_body, formals_in_reverse_order) =
-              List.fold_left params ~init:(env, []) ~f:(
-                fun (env, formals) (A.Field {name; escape=_; typ; pos}) ->
-                  let ty = env_get_typ_actual ~env ~sym:typ ~pos in
-                  let env = Env.set_val env name (Value.Var {ty}) in
-                  (env, ty :: formals)
+        let env_with_fun_heads_only =
+          List.fold_left fundecs ~init:env ~f:(
+            fun env (A.FunDec {name; params; result; body=_; pos=_}) ->
+              let formals =
+                List.map params ~f:(
+                  fun (A.Field {name=_; typ; pos; escape=_}) ->
+                    env_get_typ_actual ~env ~sym:typ ~pos
+                )
+              in
+              let result =
+                match result with
+                | Some (s, p) -> env_get_typ_actual ~sym:s ~env ~pos:p
+                | None        -> Type.Unit
+              in
+              Env.set_val env name (Value.Fun {formals; result})
+          )
+        in
+        List.iter fundecs ~f:(
+          fun (A.FunDec {name=_; params; result=_; body; pos=_}) ->
+            let env_with_fun_heads_and_local_vars =
+              List.fold_left params ~init:env_with_fun_heads_only ~f:(
+                fun env (A.Field {name=var_name; escape=_; typ; pos}) ->
+                  let var_ty = env_get_typ_actual ~env ~sym:typ ~pos in
+                  Env.set_val env var_name (Value.Var {ty = var_ty})
               )
             in
-            (* ignore because we only care if an exception is raised *)
-            ignore (transExp ~env:env_for_body body);
-            let formals = List.rev formals_in_reverse_order in
-            let result =
-              match result with
-              | None ->
-                  Type.Unit
-              | Some (sym, pos) ->
-                  env_get_typ_actual ~sym ~env ~pos
-            in
-            Env.set_val env name (Value.Fun {formals; result})
-        )
+            (* we only care if an exception is raised *)
+            ignore (transExp ~env:env_with_fun_heads_and_local_vars body);
+        );
+        env_with_fun_heads_only
     )
   and transTy ~(env : Env.t) (ty_exp : A.ty) : Type.t =
     (match ty_exp with

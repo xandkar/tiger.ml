@@ -91,7 +91,6 @@ let is_error_expected_parsing_of_filename =
     (* TODO: Fill-in other expected cases *)
     None
 
-(* TODO: test18.tig - error : definition of recursive functions is interrupted*)
 (* TODO: test21.tig - error : procedure returns value  and procedure is used in arexpr *)
 
 let is_error_expected_semant_of_filename =
@@ -101,6 +100,8 @@ let is_error_expected_semant_of_filename =
   | "test33.tig" ->
       Some Error.is_unknown_type
       (* TODO: Be more specific - which type? *)
+  | "test18.tig"
+  | "test19.tig"
   | "test20.tig" ->
       Some Error.is_unknown_id
       (* TODO: Be more specific - the unknown id is "i" *)
@@ -121,6 +122,7 @@ let is_error_expected_semant_of_filename =
   | "test11.tig"
   | "test13.tig"
   | "test14.tig"
+  | "test21.tig"
   | "test23.tig"
   | "test26.tig"
   | "test28.tig"
@@ -130,7 +132,7 @@ let is_error_expected_semant_of_filename =
   | "test34.tig"
   | "test43.tig" ->
       Some Error.is_wrong_type
-      (* TODO: Be more specific - what expected, what given? *)
+      (* TODO: Be more specific - what expected, what given? Where? *)
   | _ ->
     (* TODO: Fill-in other expected cases *)
     None
