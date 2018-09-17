@@ -99,7 +99,13 @@ let is_error_expected_parsing_of_filename =
 let is_error_expected_semant_of_filename =
   let module E = Tiger_error in
   function
+  | "test17.tig" ->
+      Some Error.is_unknown_type
+      (* TODO: Be more specific - which type? *)
   | "test09.tig"
+  | "test11.tig"
+  | "test13.tig"
+  | "test14.tig"
   | "test23.tig"
   | "test26.tig"
   | "test28.tig"
