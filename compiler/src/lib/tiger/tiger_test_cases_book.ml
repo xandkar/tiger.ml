@@ -91,17 +91,28 @@ let is_error_expected_parsing_of_filename =
     (* TODO: Fill-in other expected cases *)
     None
 
-(* TODO test21.tig - error : procedure returns value  and procedure is used in arexpr *)
-(* TODO test22.tig - No_such_field_in_record *)
-(* TODO test24.tig - Exp_not_an_array *)
-(* TODO test25.tig - Exp_not_a_record *)
+(* TODO: test18.tig - error : definition of recursive functions is interrupted*)
+(* TODO: test21.tig - error : procedure returns value  and procedure is used in arexpr *)
 
 let is_error_expected_semant_of_filename =
   let module E = Tiger_error in
   function
-  | "test17.tig" ->
+  | "test17.tig"
+  | "test33.tig" ->
       Some Error.is_unknown_type
       (* TODO: Be more specific - which type? *)
+  | "test20.tig" ->
+      Some Error.is_unknown_id
+      (* TODO: Be more specific - the unknown id is "i" *)
+  | "test22.tig" ->
+      Some Error.is_no_such_field_in_record
+      (* TODO: Be more specific - which field? *)
+  | "test24.tig" ->
+      Some Error.is_not_an_array
+      (* TODO: Be more specific *)
+  | "test25.tig" ->
+      Some Error.is_not_a_record
+      (* TODO: Be more specific *)
   | "test09.tig"
   | "test11.tig"
   | "test13.tig"
