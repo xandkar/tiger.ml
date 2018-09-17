@@ -3,7 +3,6 @@ module List = ListLabels
 module A         = Tiger_absyn
 module Env       = Tiger_env
 module E         = Tiger_error
-module Symbol    = Tiger_symbol
 module Translate = Tiger_translate
 module Type      = Tiger_env_type
 module Value     = Tiger_env_value
@@ -295,7 +294,7 @@ end = struct
         List.iter typedecs ~f:(fun (A.TypeDec {name; ty=ty_exp; pos}) ->
           let ty = transTy ~env ty_exp in
           (match env_get_typ ~sym:name ~env ~pos with
-          | Type.Name (name, ty_opt_ref) ->
+          | Type.Name (_, ty_opt_ref) ->
               ty_opt_ref := Some ty
           | Type.Unit
           | Type.Nil
