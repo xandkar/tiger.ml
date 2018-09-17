@@ -144,5 +144,6 @@ let read ~from_dir:dir =
   Sys.readdir dir
   |> Array.to_list
   |> List.filter ~f:is_filename_not_hidden
+  |> List.filter ~f:(fun filename -> Filename.check_suffix filename ".tig")
   |> List.sort ~cmp:compare
   |> List.map ~f:(test_case_of_filename ~dir)
