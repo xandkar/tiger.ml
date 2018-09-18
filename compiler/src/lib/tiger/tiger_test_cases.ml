@@ -96,6 +96,30 @@ let micro =
             lst \n\
           end"
     )
+  ; ( Test.case
+        "Cycle in type dec"
+        ~code:"\
+          let \n\
+            type a = b \n\
+            type b = a \n\
+          in \n\
+          end \
+        "
+        ~is_error_expected_semant:(Some Error.is_cycle_in_type_dec)
+    )
+  ; ( Test.case
+        "Cycle in type dec"
+        ~code:"\
+          let \n\
+            type a = b \n\
+            type b = c \n\
+            type c = a \n\
+            var x : a := 1 \n\
+          in \n\
+          end \
+        "
+        ~is_error_expected_semant:(Some Error.is_cycle_in_type_dec)
+    )
   ]
 
 let book ~dir =

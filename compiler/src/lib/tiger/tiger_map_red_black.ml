@@ -102,3 +102,9 @@ let to_dot t ~k_to_string =
 
 let of_list pairs =
   List.fold_left pairs ~init:empty ~f:(fun t (k, v) -> set t ~k ~v)
+
+let rec to_list = function
+  | Leaf ->
+      []
+  | Node (_, pair, left, right) ->
+      pair :: ((to_list left) @ (to_list right))

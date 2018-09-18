@@ -1,8 +1,11 @@
 module List = ListLabels
 
 module A         = Tiger_absyn
+module Dag       = Tiger_dag
 module Env       = Tiger_env
 module E         = Tiger_error
+module Pos       = Tiger_position
+module Sym       = Tiger_symbol
 module Translate = Tiger_translate
 module Type      = Tiger_env_type
 module Value     = Tiger_env_value
@@ -76,6 +79,37 @@ end = struct
 
   let check_int expty ~pos : unit =
     check_same return_int expty ~pos
+
+  let paths_of_typedecs typedecs : (Sym.t * Sym.t * Pos.t) list list =
+    let (path, paths) =
+      List.fold_left typedecs ~init:([], []) ~f:(
+        fun (path, paths) (A.TypeDec {name=child; ty; pos}) ->
+          match ty with
+          | A.NameTy {symbol=parent; _} ->
+              (((parent, child, pos) :: path), paths)
+          | A.RecordTy _
+          | A.ArrayTy _ ->
+              ([], path :: paths)
+      )
+    in
+    List.map (path :: paths) ~f:List.rev
+
+  let check_cycles (typedecs : A.typedec list) : unit =
+    let non_empty_paths =
+      List.filter
+        (paths_of_typedecs typedecs)
+        ~f:(function [] -> false | _ -> true)
+    in
+    List.iter non_empty_paths ~f:(
+      fun path ->
+        match Dag.of_list (List.map path ~f:(fun (p, c, _) -> (p, c))) with
+        | Ok _ ->
+            ()
+        | Error `Cycle ->
+            let (_, from_id, from_pos) = List.hd           path  in
+            let (_,   to_id,   to_pos) = List.hd (List.rev path) in
+            E.raise (E.Cycle_in_type_decs {from_id; from_pos; to_id; to_pos})
+    )
 
   let rec transExp ~env exp =
     let rec trexp exp =
@@ -285,6 +319,7 @@ end = struct
         in
         Env.set_val env name (Value.Var {ty})
     | A.TypeDecs typedecs ->
+        check_cycles typedecs;
         let env =
           List.fold_left typedecs ~init:env ~f:(
             fun env (A.TypeDec {name; ty=_; pos=_}) ->

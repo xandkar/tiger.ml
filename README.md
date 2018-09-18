@@ -5,9 +5,9 @@ A Tiger-compiler implementation in (OCa)ML
 Status
 ------
 
-![screenshot-tests-semant-done-head](screenshots/tests-semant-done-head.jpg)
+![screenshot-tests-head](screenshots/tests-head.jpg)
 ...
-![screenshot-tests-semant-done-tail](screenshots/tests-semant-done-tail.jpg)
+![screenshot-tests-tail](screenshots/tests-tail.jpg)
 
 ### Features
 #### Done
@@ -49,6 +49,8 @@ Status
   - [-] grid view (cols: lex, pars, semant, etc.; rows: test cases.) 
     - [x] implementation
     - [ ] refactoring
+  - [ ] test time-outs (motive: cycle non-detection caused an infinite loop)
+    - [ ] parallel test execution
 - [ ] Travis CI
 
 Implementation Notes

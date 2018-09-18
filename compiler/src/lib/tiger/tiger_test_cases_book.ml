@@ -96,6 +96,9 @@ let is_error_expected_parsing_of_filename =
 let is_error_expected_semant_of_filename =
   let module E = Tiger_error in
   function
+  | "test16.tig" ->
+      Some Error.is_cycle_in_type_dec
+      (* TODO: Be more specific - between which decs? *)
   | "test17.tig"
   | "test33.tig" ->
       Some Error.is_unknown_type

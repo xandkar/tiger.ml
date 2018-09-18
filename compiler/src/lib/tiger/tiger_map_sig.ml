@@ -11,5 +11,6 @@ module type S = sig
 
   val to_dot : ('k, 'v) t -> k_to_string:('k -> string) -> string
 
-  val of_list : ('k * 'v) list -> ('k, 'v) t
+  val of_list : ('k * 'v) list -> ('k , 'v) t
+  val to_list : ('k , 'v) t    -> ('k * 'v) list
 end

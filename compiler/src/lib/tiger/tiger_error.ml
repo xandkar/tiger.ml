@@ -4,6 +4,12 @@ module Sym = Tiger_symbol
 module Typ = Tiger_env_type
 
 type t =
+  | Cycle_in_type_decs of
+      { from_id  : Sym.t
+      ; from_pos : Pos.t
+      ;   to_id  : Sym.t
+      ;   to_pos : Pos.t
+      }
   | Invalid_syntax    of Pos.t
   | Unknown_id        of {id    : Sym.t; pos : Pos.t}
   | Unknown_type      of {ty_id : Sym.t; pos : Pos.t}
@@ -74,6 +80,15 @@ let to_string =
   function
   | Invalid_syntax pos ->
       s "Invalid syntax in %s" (Pos.to_string pos)
+  | Cycle_in_type_decs  {from_id; from_pos; to_id; to_pos} ->
+      s ( "Circular type declaration between %S and %S."
+        ^^"Locations: %S (in %s), %S (in %s).")
+        (Sym.to_string from_id)
+        (Sym.to_string to_id)
+        (Sym.to_string from_id)
+        (Pos.to_string from_pos)
+        (Sym.to_string to_id)
+        (Pos.to_string to_pos)
   | Unknown_id  {id; pos} ->
       s "Unknown identifier %S in %s" (Sym.to_string id) (Pos.to_string pos)
   | Unknown_type {ty_id; pos} ->
@@ -152,6 +167,7 @@ let is_unknown_id t =
   match t with
   | Unknown_id _ ->
       true
+  | Cycle_in_type_decs _
   | Invalid_syntax _
   | Unknown_type _
   | Id_is_a_function _
@@ -174,6 +190,7 @@ let is_unknown_type t =
   match t with
   | Unknown_type _ ->
       true
+  | Cycle_in_type_decs _
   | Unknown_id _
   | Invalid_syntax _
   | Id_is_a_function _
@@ -196,6 +213,7 @@ let is_wrong_type t =
   match t with
   | Wrong_type _ ->
       true
+  | Cycle_in_type_decs _
   | Unknown_type _
   | Unknown_id _
   | Invalid_syntax _
@@ -218,6 +236,7 @@ let is_wrong_number_of_args t =
   match t with
   | Wrong_number_of_args _ ->
       true
+  | Cycle_in_type_decs _
   | Wrong_type _
   | Unknown_type _
   | Unknown_id _
@@ -240,6 +259,7 @@ let is_invalid_syntax t =
   match t with
   | Invalid_syntax _ ->
       true
+  | Cycle_in_type_decs _
   | Wrong_type _
   | Unknown_type _
   | Unknown_id _
@@ -262,6 +282,7 @@ let is_not_a_record t =
   match t with
   | Exp_not_a_record _ ->
       true
+  | Cycle_in_type_decs _
   | Invalid_syntax _
   | Wrong_type _
   | Unknown_type _
@@ -284,6 +305,7 @@ let is_not_an_array t =
   match t with
   | Exp_not_an_array _ ->
       true
+  | Cycle_in_type_decs _
   | Exp_not_a_record _
   | Invalid_syntax _
   | Wrong_type _
@@ -306,6 +328,30 @@ let is_no_such_field_in_record t =
   match t with
   | No_such_field_in_record _ ->
       true
+  | Cycle_in_type_decs _
+  | Exp_not_an_array _
+  | Exp_not_a_record _
+  | Invalid_syntax _
+  | Wrong_type _
+  | Unknown_type _
+  | Unknown_id _
+  | Id_is_a_function _
+  | Id_not_a_function _
+  | Wrong_type_of_expression_in_var_dec _
+  | Wrong_type_used_as_array _
+  | Wrong_type_used_as_record _
+  | Wrong_type_of_field_value _
+  | Wrong_type_of_arg _
+  | Wrong_number_of_args _
+  | Invalid_operand_type _
+  | Different_operand_types _ ->
+      false
+
+let is_cycle_in_type_dec t =
+  match t with
+  | Cycle_in_type_decs _ ->
+      true
+  | No_such_field_in_record _
   | Exp_not_an_array _
   | Exp_not_a_record _
   | Invalid_syntax _
