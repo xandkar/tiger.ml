@@ -10,6 +10,7 @@ type t =
       ;   to_id  : Sym.t
       ;   to_pos : Pos.t
       }
+  | Break_outside_loop of Pos.t
   | Invalid_syntax    of Pos.t
   | Unknown_id        of {id    : Sym.t; pos : Pos.t}
   | Unknown_type      of {ty_id : Sym.t; pos : Pos.t}
@@ -85,3 +86,4 @@ val is_not_a_record : t -> bool
 val is_not_an_array : t -> bool
 val is_no_such_field_in_record : t -> bool
 val is_cycle_in_type_dec : t -> bool
+val is_break_outside_loop : t -> bool

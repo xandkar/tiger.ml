@@ -1,15 +1,18 @@
 module Map   = Tiger_map
+module Sym   = Tiger_symbol
 module Type  = Tiger_env_type
 module Value = Tiger_env_value
 
 type t =
   { typs : Type.env
   ; vals : Value.env
+  ; loop : Sym.t option
   }
 
 let base =
   { typs = Type.built_in
   ; vals = Value.built_in
+  ; loop = None
   }
 
 let get_typ {typs; _} k =
@@ -23,3 +26,20 @@ let set_typ t k v =
 
 let set_val t k v =
   {t with vals = Map.set t.vals ~k ~v}
+
+let loop_begin t =
+  let loop = Sym.new_of_string "loop" in
+  let t = {t with loop = Some loop} in
+  (loop, t)
+
+let loop_end t given =
+  match t.loop with
+  | None ->
+      assert false
+  | Some current when (not (Sym.is_equal current given)) ->
+      assert false
+  | Some _ ->
+      {t with loop = None}
+
+let loop_current {loop; _} =
+  loop

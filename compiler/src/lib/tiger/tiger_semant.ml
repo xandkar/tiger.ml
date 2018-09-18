@@ -192,16 +192,25 @@ end = struct
       | A.WhileExp {test; body; pos} ->
           (* test : must be int, because we have no bool *)
           check_int (trexp test) ~pos;
-          ignore (trexp body);  (* Only care if a type-error is raised *)
+          let (loop, env) = Env.loop_begin env in
+          (* Only care if an error is raised *)
+          ignore (transExp ~env body);
+          ignore (Env.loop_end env loop);
           return_unit
       | A.ForExp {var; lo; hi; body; pos; escape=_} ->
           check_int (trexp lo) ~pos;
           check_int (trexp hi) ~pos;
-          (* Only care if a type-error is raised *)
+          let (loop, env) = Env.loop_begin env in
           let env = Env.set_val env var (Value.Var {ty = Type.Int}) in
+          (* Only care if an error is raised *)
           ignore (transExp ~env body);
+          ignore (Env.loop_end env loop);
           return_unit
-      | A.BreakExp _ ->
+      | A.BreakExp pos ->
+          (match Env.loop_current env with
+          | Some _ -> ()
+          | None   -> E.raise (E.Break_outside_loop pos)
+          );
           return_unit
       | A.LetExp {decs; body; pos=_} ->
           (* (1) decs augment env *)

@@ -120,6 +120,30 @@ let micro =
         "
         ~is_error_expected_semant:(Some Error.is_cycle_in_type_dec)
     )
+  ; ( Test.case
+        "Break outside loop"
+        ~code:
+          "break"
+        ~is_error_expected_semant:(Some Error.is_break_outside_loop)
+    )
+  ; ( Test.case
+        "Break within for loop"
+        ~code:"for i := 0 to 5 do (print(\"x\"); break)"
+    )
+  ; ( Test.case
+        "Break after for loop"
+        ~code:"(for i := 0 to 5 do (print(\"x\"); break); break)"
+        ~is_error_expected_semant:(Some Error.is_break_outside_loop)
+    )
+  ; ( Test.case
+        "Break within while loop"
+        ~code:"while 1 do (print(\"x\"); break)"
+    )
+  ; ( Test.case
+        "Break after while loop"
+        ~code:"(while 1 do (print(\"x\"); break); break)"
+        ~is_error_expected_semant:(Some Error.is_break_outside_loop)
+    )
   ]
 
 let book ~dir =
