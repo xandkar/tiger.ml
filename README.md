@@ -104,6 +104,33 @@ interspersion patterns in the rules like:
 for the exception of `var_dec`, which, since we do not need to group its
 consecutive sequences, can be reduced upon first sighting.
 
+The final rules I ended-up with are:
+
+    decs:
+      | var_dec   decs_any          { $1 :: $2 }
+      | fun_decs  decs_any_but_fun  { (Ast.FunDecs  $1) :: $2 }
+      | typ_decs  decs_any_but_typ  { (Ast.TypeDecs $1) :: $2 }
+      ;
+
+    decs_any:
+      |                             { [] }
+      | var_dec   decs_any          { $1 :: $2 }
+      | fun_decs  decs_any_but_fun  { (Ast.FunDecs  $1) :: $2 }
+      | typ_decs  decs_any_but_typ  { (Ast.TypeDecs $1) :: $2 }
+      ;
+
+    decs_any_but_fun:
+      |                             { [] }
+      | var_dec   decs_any          { $1 :: $2 }
+      | typ_decs  decs_any_but_typ  { (Ast.TypeDecs $1) :: $2 }
+      ;
+
+    decs_any_but_typ:
+      |                             { [] }
+      | var_dec   decs_any          { $1 :: $2 }
+      | fun_decs  decs_any_but_fun  { (Ast.FunDecs $1) :: $2 }
+      ;
+
 ##### lval
 
 ### AST
