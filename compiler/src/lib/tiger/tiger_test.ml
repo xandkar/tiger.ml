@@ -28,18 +28,7 @@ open Printf
 module List = ListLabels
 module String = StringLabels
 
-module Option : sig
-  type 'a t = 'a option
-
-  val map : 'a t -> ('a -> 'b) -> 'b t
-end = struct
-  type 'a t = 'a option
-
-  let map t f =
-    match t with
-    | None   -> None
-    | Some x -> Some (f x)
-end
+module Opt = Tiger_opt
 
 (* TODO: ~expect:Output of 'a | Exception of (exn -> bool) *)
 type t =
@@ -214,7 +203,7 @@ let run tests =
     | Ok produced ->
         let (out_stat, out_msg) =
           match
-            Option.map expect_output (fun expected -> expected = produced)
+            Opt.map expect_output (fun expected -> expected = produced)
           with
           | None ->
               (Skip, "expected output not provided")
