@@ -60,11 +60,88 @@ Implementation Notes
 
 #### shift/reduce conflicts
 ##### grouping consecutive declarations
+In order to support mutual recursion, we need to group consecutive
+type and function declarations (see Tiger-book pages 97-99).
+
+Initially, I defined the rules to do so as:
+
+    decs:
+      | dec      { $1 :: [] }
+      | dec decs { $1 :: $2 }
+      ;
+    dec:
+      | var_dec  { $1 }
+      | typ_decs { Ast.TypeDecs $1 }
+      | fun_decs { Ast.FunDecs $1 }
+      ;
+
+which, while straightforward (and working, because `ocamlyacc` defaults to
+shift in case of a conflict), nonetheless caused a shift/reduce conflict in
+each of: `typ_decs` and `fun_decs`; where the parser did not know whether to
+shift and stay in `(typ|fun_)_dec` state or to reduce and get back to `dec`
+state.
+
+Sadly, tagging the rules with a lower precedence (to explicitly favor
+shifting) - does not help :(
+
+    %nonassoc LOWEST
+    ...
+    dec:
+      | var_dec                { $1 }
+      | typ_decs  %prec LOWEST { Ast.TypeDecs $1 }
+      | fun_decs  %prec LOWEST { Ast.FunDecs $1 }
+      ;
+
+The difficulty seems to be in the lack of a separator token which would be
+able to definitively mark the end of each sequence of consecutive
+`(typ_|fun_)` declarations.
+
+Keeping this in mind, another alternative is to manually capture the possible
+interspersion patterns in the rules like:
+
+    (N * foo) followed-by (N * not-foo)
+
+for the exception of `var_dec`, which, since we do not need to group its
+consecutive sequences, can be reduced upon first sighting.
+
 ##### lval
 
 ### AST
 
 #### print as M-exp
+
+I chose to pretty-print AST as an (indented)
+[M-expression](https://en.wikipedia.org/wiki/M-expression) - an underrated
+format, used in Mathematica and was intended for Lisp by McCarthy himself; it
+is nearly as flexible as S-expressions, but significantly more readable (IMO).
+
+As an example, here is what `test28.tig` looks like after parsing and
+pretty-printing:
+
+    LetExp[
+        [
+        TypeDecs[
+            TypeDec[
+                arrtype1,
+                ArrayTy[
+                int]],
+            TypeDec[
+                arrtype2,
+                ArrayTy[
+                int]]],
+        VarDec[
+            arr1,
+            arrtype1,
+            ArrayExp[
+                arrtype2,
+                IntExp[
+                    10],
+                IntExp[
+                    0]]]],
+        SeqExp[
+            VarExp[
+                SimpleVar[
+                    arr1]]]]
 
 ### Machine
 Will most-likely compile to RISC and execute using SPIM (as favored by Appel)
