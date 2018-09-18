@@ -1,3 +1,5 @@
+module Sym = Tiger_symbol
+
 type unique
 
 type t =
@@ -13,12 +15,12 @@ type t =
       { unique : unique
       ; ty     : t
       }
-  | Name of Tiger_symbol.t * t option ref
+  | Name of Sym.t * t option ref
 and record_fields =
-  (Tiger_symbol.t * t) list
+  (Sym.t * t) list
 
 type env =
-  (Tiger_symbol.t, t ) Tiger_map.t
+  (Sym.t, t ) Tiger_map.t
 
 val built_in : env
 
@@ -33,7 +35,7 @@ val is_name   : t -> bool
 val if_record : t -> f:(record_fields -> 'a) -> otherwise:(unit -> 'a) -> 'a
 val if_array  : t -> f:(t -> 'a)             -> otherwise:(unit -> 'a) -> 'a
 
-val new_record : record_fields -> t
-val new_array  : t -> t
+val new_record : name:Sym.t -> fields:record_fields -> t
+val new_array  : name:Sym.t -> ty:t -> t
 
 val to_string : t -> string

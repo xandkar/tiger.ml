@@ -335,9 +335,9 @@ end = struct
               Env.set_typ env name (Type.Name (name, ref None))
           )
         in
-        List.iter typedecs ~f:(fun (A.TypeDec {name; ty=ty_exp; pos}) ->
-          let ty = transTy ~env ty_exp in
-          (match env_get_typ ~sym:name ~env ~pos with
+        List.iter typedecs ~f:(fun (A.TypeDec {name=ty_name; ty=ty_exp; pos}) ->
+          let ty = transTy ~env ~ty_name ~ty_exp in
+          (match env_get_typ ~sym:ty_name ~env ~pos with
           | Type.Name (_, ty_opt_ref) ->
               ty_opt_ref := Some ty
           | Type.Unit
@@ -382,7 +382,7 @@ end = struct
         );
         env_with_fun_heads_only
     )
-  and transTy ~(env : Env.t) (ty_exp : A.ty) : Type.t =
+  and transTy ~(env : Env.t) ~ty_name ~(ty_exp : A.ty) : Type.t =
     (match ty_exp with
     | A.NameTy {symbol=sym; pos} ->
         env_get_typ ~sym ~env ~pos
@@ -393,10 +393,10 @@ end = struct
             (name, ty)
           )
         in
-        Type.new_record fields
+        Type.new_record ~name:ty_name ~fields
     | A.ArrayTy {symbol=sym; pos} ->
         let element_ty = env_get_typ ~sym ~env ~pos in
-        Type.new_array element_ty
+        Type.new_array ~name:ty_name ~ty:element_ty
     )
 end
 

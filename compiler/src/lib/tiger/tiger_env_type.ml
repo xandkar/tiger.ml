@@ -1,12 +1,12 @@
 open Printf
 
-module List    = ListLabels
+module List = ListLabels
 
-module Map    = Tiger_map
-module Symbol = Tiger_symbol
+module Map = Tiger_map
+module Sym = Tiger_symbol
 
 type unique =
-  unit ref
+  Sym.t
 
 type t =
   | Unit
@@ -21,36 +21,33 @@ type t =
       { unique : unique
       ; ty     : t
       }
-  | Name of Symbol.t * t option ref
+  | Name of Sym.t * t option ref
 and record_fields =
   (Tiger_symbol.t * t) list
 
 type env =
-  (Symbol.t, t ) Map.t
+  (Sym.t, t ) Map.t
 
-let new_unique () =
-  ref ()
-
-let new_record fields =
+let new_record ~name ~fields =
   Record
     { fields
-    ; unique = new_unique ()
+    ; unique = Sym.unique_of_string (Sym.to_string name)
     }
 
-let new_array ty =
+let new_array ~name ~ty =
   Array
     { ty
-    ; unique = new_unique ()
+    ; unique = Sym.unique_of_string (Sym.to_string name)
     }
 
 let is_equal t1 t2 =
   match t1, t2 with
-  | Name   (s1, _)       ,  Name   (s2, _)        -> Symbol.is_equal s1 s2
-  | Record {unique=u1; _},  Record {unique=u2; _} -> u1 == u2
+  | Name   (s1, _)       ,  Name   (s2, _)        -> Sym.is_equal s1 s2
+  | Record {unique=s1; _},  Record {unique=s2; _} -> Sym.is_equal s1 s2
   | Record _             ,  Nil                   -> true
   | Nil                  ,  Record _              -> true
-  | Array  {unique=u1; _},  Array  {unique=u2; _} -> u1 == u2
-  | t1                   , t2                     -> t1 =  t2
+  | Array  {unique=s1; _},  Array  {unique=s2; _} -> Sym.is_equal s1 s2
+  | t1                   , t2                     -> t1 = t2
   (* The above pattern matching is "fragile" and I'm OK with it.
    * TODO: Can we ignore the warning locally?
    * *)
@@ -116,10 +113,10 @@ let to_string = function
   | Unit               -> "unit"
   | Nil                -> "nil"
   | String             -> "string"
-  | Record {unique; _} -> sprintf "record(%d)" (Obj.magic unique)
-  | Array  {unique; _} -> sprintf "array(%d)"  (Obj.magic unique)
+  | Record {unique; _} -> sprintf "Record[%s]" (Sym.to_string unique)
+  | Array  {unique; _} -> sprintf "Array[%s]"  (Sym.to_string unique)
   | Int                -> "int"
-  | Name (name, _)     -> Symbol.to_string name
+  | Name (name, _)     -> Sym.to_string name
 
 let built_in =
   [ ("unit"   , Unit)
@@ -127,5 +124,5 @@ let built_in =
   ; ("int"    , Int)
   ; ("string" , String)
   ]
-  |> List.map ~f:(fun (k, v) -> (Symbol.of_string k, v))
+  |> List.map ~f:(fun (k, v) -> (Sym.of_string k, v))
   |> Map.of_list
