@@ -9,20 +9,19 @@ let counter = ref 0
 
 let symbols = H.create 16
 
-let next name =
+let unique_of_string name =
   incr counter;
   let symbol = !counter in
   {name; symbol}
 
-let new_of_string name =
-  let t = next name in
-  H.replace symbols ~key:t.name ~data:t.symbol;
-  t
-
 let of_string name =
   match H.find_opt symbols name with
-  | Some s -> {name; symbol=s}
-  | None   -> new_of_string name
+  | Some symbol ->
+      {name; symbol}
+  | None ->
+      let t = unique_of_string name in
+      H.replace symbols ~key:t.name ~data:t.symbol;
+      t
 
 let to_string {name; _} =
   name

@@ -1,6 +1,6 @@
 type t
 
-val new_of_string : string -> t
+val unique_of_string : string -> t
 
 val of_string : string -> t
 

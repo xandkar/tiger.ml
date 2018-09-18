@@ -28,7 +28,7 @@ let set_val t k v =
   {t with vals = Map.set t.vals ~k ~v}
 
 let loop_begin t =
-  let loop = Sym.new_of_string "loop" in
+  let loop = Sym.unique_of_string "loop" in
   let t = {t with loop = Some loop} in
   (loop, t)
 
