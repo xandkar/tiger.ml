@@ -5,14 +5,16 @@ type t =
   ; symbol : int
   }
 
-let counter = ref 0
+let next =
+  let counter = ref 0 in
+  fun () ->
+    incr counter;
+    !counter
 
 let symbols = H.create 16
 
 let unique_of_string name =
-  incr counter;
-  let symbol = !counter in
-  {name; symbol}
+  {name; symbol = next ()}
 
 let of_string name =
   match H.find_opt symbols name with
