@@ -28,6 +28,7 @@ open Printf
 module List = ListLabels
 module String = StringLabels
 
+module Err = Tiger_error
 module Opt = Tiger_opt
 
 (* TODO: ~expect:Output of 'a | Exception of (exn -> bool) *)
@@ -120,7 +121,7 @@ let lexbuf_create ~filename ~code =
   lb
 
 let pass_lexing ~fake_filename ~code
-: (Tiger_parser.token list, string) result
+: Tiger_parser.token list
 =
   let lexbuf = lexbuf_create ~filename:fake_filename ~code in
   let rec tokens () =
@@ -128,27 +129,19 @@ let pass_lexing ~fake_filename ~code
     (* Avoiding fragile pattern-matching *)
     if token = Tiger_parser.EOF then [] else token :: tokens ()
   in
-  match tokens () with
-  | exception e -> Error (Printexc.to_string e)
-  | tokens      -> Ok tokens
+  tokens ()
 
 let pass_parsing ~fake_filename ~code
-: (Tiger_absyn.t, string) result
+: Tiger_absyn.t
 =
-  let lb = lexbuf_create ~filename:fake_filename ~code in
-  match Tiger_parser.program Tiger_lexer.token lb with
-  | exception Parsing.Parse_error ->
-      let module L = Lexing in
-      let L.({lex_curr_p = {pos_lnum=l; pos_bol=b; pos_cnum=c; _}; _}) = lb in
-      let msg = sprintf "Syntax error around line: %d, column: %d" l (c - b) in
-      Error msg
-  | ast ->
-      Ok ast
+  Tiger_parser.program
+    Tiger_lexer.token
+    (lexbuf_create ~filename:fake_filename ~code)
 
 let pass_semant (absyn : Tiger_absyn.t)
-: (unit, string) result
+: unit
 =
-  Ok (Tiger_semant.transProg absyn)
+  Tiger_semant.transProg absyn
 
 let str_exact str exact =
   let len = String.length str in
@@ -158,68 +151,69 @@ let str_exact str exact =
   let pad = String.make pad ' ' in
   str ^ pad
 
+let exn_to_string = function
+  | Tiger_error.T e -> Tiger_error.to_string e
+  |               e ->    Printexc.to_string e
+
 let s = sprintf
 let p = printf
 let p_ln = print_newline
 
 let run tests =
   Printexc.record_backtrace true;
-  let count_fail_all = ref 0 in
+  let fail, fail_count =
+    let count_fail_all = ref 0 in
+    ( (fun () -> incr count_fail_all; Fail)
+    , (fun () -> !count_fail_all)
+    )
+  in
   let run_pass ~f ~expect_output ~is_error_expected =
-    let is_error_expected =
-      match is_error_expected with
-      | None -> (fun _ -> false)
-      | Some f -> f
-    in
-    match f () with
-    | exception e ->
-        let backtrace = Printexc.get_backtrace () in
-        let (exe_stat, exe_msg) =
-          (match e with
-          | Tiger_error.T e when is_error_expected e ->
-              (Pass, (Tiger_error.to_string e))
-          | Tiger_error.T e ->
-              incr count_fail_all;
-              (Fail, (Tiger_error.to_string e))
-          | e ->
-              incr count_fail_all;
-              (Fail, (Printexc.to_string e))
-          )
-        in
-        { exe_stat
-        ; exe_msg  = s "\n\tException: %s.\n\tBacktrace: %s" exe_msg backtrace
+    let execution = match f () with exception e -> `Exn e | o -> `Out o in
+    (match execution, is_error_expected with
+    | `Exn (Err.T e), Some is_error_expected when is_error_expected e ->
+        { exe_stat = Pass
+        ; exe_msg  = ""
         ; out_stat = Skip
         ; out_val  = None
-        ; out_msg  = ""  (* old "info" goes here *)
+        ; out_msg  = ""
         }
-    | Error info ->
-        incr count_fail_all;
-        { exe_stat = Fail
-        ; exe_msg  = info
+    | `Exn e, Some _
+    | `Exn e, None ->
+        let b = Printexc.get_backtrace () in
+        let e = exn_to_string e in
+        { exe_stat = fail ()
+        ; exe_msg  = s "\n\tException: %s.\n\tBacktrace: %s" e b
         ; out_stat = Skip
         ; out_val  = None
-        ; out_msg  = ""  (* old "info" goes here *)
+        ; out_msg  = ""
         }
-    | Ok produced ->
+    | `Out output, Some _ ->
+        { exe_stat = fail ()
+        ; exe_msg  = "Expected exception, but got output."
+        ; out_stat = fail ()
+        ; out_val  = Some output  (* TODO: Do we really want to keep going? *)
+        ; out_msg  = "Expected exception, but got output."
+        }
+    | `Out output, None ->
         let (out_stat, out_msg) =
           match
-            Opt.map expect_output (fun expected -> expected = produced)
+            Opt.map expect_output (fun expected -> expected = output)
           with
           | None ->
               (Skip, "expected output not provided")
           | Some true ->
               (Pass, "")
           | Some false ->
-              incr count_fail_all;
-              (* TODO pretty print expected and produced *)
-              (Fail, "unexpected output")
+              (* TODO pretty print expected and output *)
+              (fail (), "unexpected output")
         in
         { exe_stat = Pass
         ; exe_msg  = ""  (* old "info" goes here *)
         ; out_stat
-        ; out_val  = Some produced
+        ; out_val  = Some output
         ; out_msg
         }
+    )
   in
   let test_case_count = ref 0 in
   let col_1_width = 30 in
@@ -320,12 +314,12 @@ let run tests =
   );
   p "%s" bar_horiz_major; p_ln ();
   p "%s %d failures in %d test cases"
-      (match !count_fail_all with
+      (match fail_count () with
       | 0 -> color_opt (status_to_str Pass) (status_to_color Pass)
       | _ -> color_opt (status_to_str Fail) (status_to_color Fail)
       )
-      !count_fail_all
+      (fail_count ())
       !test_case_count;
     p_ln ();
   p "%s" bar_horiz_major; p_ln ();
-  exit !count_fail_all
+  exit (fail_count ())
