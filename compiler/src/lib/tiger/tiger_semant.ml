@@ -4,6 +4,7 @@ module A         = Tiger_absyn
 module Dag       = Tiger_dag
 module Env       = Tiger_env
 module E         = Tiger_error
+module Escape    = Tiger_semant_escape
 module Pos       = Tiger_position
 module Sym       = Tiger_symbol
 module Translate = Tiger_translate
@@ -403,5 +404,6 @@ end
 open Semant
 
 let transProg absyn =
+  Escape.find absyn;
   let {exp = _; ty = _} = transExp absyn ~env:Env.base in
   ()
