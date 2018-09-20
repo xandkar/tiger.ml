@@ -5,6 +5,9 @@ let map t f =
   | None   -> None
   | Some x -> Some (f x)
 
+let iter t ~f =
+  ignore (map t f)
+
 let get t ~default =
   match t with
   | None   -> default
