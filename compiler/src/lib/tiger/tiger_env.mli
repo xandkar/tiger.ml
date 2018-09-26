@@ -11,3 +11,6 @@ val set_val : t -> Tiger_symbol.t -> Tiger_env_value.t -> t
 val loop_begin   : t -> (Tiger_symbol.t * t)
 val loop_end     : t ->  Tiger_symbol.t -> t
 val loop_current : t ->  Tiger_symbol.t option
+
+val level_set : t -> Tiger_translate.Level.t -> t
+val level_get : t -> Tiger_translate.Level.t

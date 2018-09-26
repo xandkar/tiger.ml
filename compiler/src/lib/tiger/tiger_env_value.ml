@@ -2,14 +2,20 @@ module List    = ListLabels
 
 module Map    = Tiger_map
 module Symbol = Tiger_symbol
+module Temp      = Tiger_temp
+module Translate = Tiger_translate
 module Type   = Tiger_env_type
 
 type t =
   | Var of
-      {ty : Type.t}
+      { access : Tiger_translate.access
+      ; ty     : Tiger_env_type.t
+      }
   | Fun of
-      { formals : Type.t list
-      ; result  : Type.t
+      { formals : Tiger_env_type.t list
+      ; result  : Tiger_env_type.t
+      ; level   : Tiger_translate.Level.t
+      ; label   : Tiger_temp.Label.t
       }
 
 type env =
@@ -29,7 +35,9 @@ let built_in =
   ]
   |> List.map ~f:(fun (name, formals, result) ->
       let key   = Symbol.of_string name in
-      let value = Fun {formals; result} in
+      let level = Translate.Level.init in
+      let label = Temp.Label.gen () in
+      let value = Fun {formals; result; level; label} in
       (key, value)
     )
   |> Map.of_list

@@ -7,6 +7,7 @@ module E         = Tiger_error
 module Escape    = Tiger_semant_escape
 module Pos       = Tiger_position
 module Sym       = Tiger_symbol
+module Temp      = Tiger_temp
 module Translate = Tiger_translate
 module Type      = Tiger_env_type
 module Value     = Tiger_env_value
@@ -123,7 +124,7 @@ end = struct
           return_string
       | A.CallExp {func; args; pos} ->
           (match env_get_val ~sym:func ~env ~pos with
-          | Value.Fun {formals; result} ->
+          | Value.Fun {formals; result; level=_; label=_} ->
               let expected = List.length formals in
               let given    = List.length args in
               if given = expected then
@@ -202,7 +203,10 @@ end = struct
           check_int (trexp lo) ~pos;
           check_int (trexp hi) ~pos;
           let (loop, env) = Env.loop_begin env in
-          let env = Env.set_val env var (Value.Var {ty = Type.Int}) in
+          let level = Env.level_get env in
+          (* Assuming all escape, for now *)
+          let access = Translate.alloc_local ~level ~escapes:true in
+          let env = Env.set_val env var (Value.Var {ty = Type.Int; access}) in
           (* Only care if an error is raised *)
           ignore (transExp ~env body);
           ignore (Env.loop_end env loop);
@@ -239,8 +243,10 @@ end = struct
       (function
       | A.SimpleVar {symbol=sym; pos} ->
           (match env_get_val ~sym ~env ~pos with
-          | Value.Fun _    -> E.raise (E.Id_is_a_function {id=sym; pos})
-          | Value.Var {ty} -> return (actual_ty ~pos ty)
+          | Value.Fun _ ->
+              E.raise (E.Id_is_a_function {id=sym; pos})
+          | Value.Var {ty; access=_} ->
+              return (actual_ty ~pos ty)
           )
       | A.FieldVar {var; symbol; pos} ->
           let {exp=_; ty} = trvar var in
@@ -327,7 +333,12 @@ end = struct
               ty
           )
         in
-        Env.set_val env name (Value.Var {ty})
+        let access =
+          Translate.alloc_local
+            ~level:(Env.level_get env)
+            ~escapes:true  (* Assuming all escape, for now... *)
+        in
+        Env.set_val env name (Value.Var {ty; access})
     | A.TypeDecs typedecs ->
         check_cycles typedecs;
         let env =
@@ -366,7 +377,16 @@ end = struct
                 | Some (s, p) -> env_get_typ_actual ~sym:s ~env ~pos:p
                 | None        -> Type.Unit
               in
-              Env.set_val env name (Value.Fun {formals; result})
+              let label = Temp.Label.gen () in
+              let level =
+                Translate.Level.next
+                  (Env.level_get env)
+                  ~name:label
+                  (* Assuming all escape (for now) *)
+                  ~formals:(List.map formals ~f:(fun _ -> true))
+              in
+              let env = Env.level_set env level in
+              Env.set_val env name (Value.Fun {formals; result; level; label})
           )
         in
         List.iter fundecs ~f:(
@@ -375,7 +395,13 @@ end = struct
               List.fold_left params ~init:env_with_fun_heads_only ~f:(
                 fun env (A.Field {name=var_name; escape=_; typ; pos}) ->
                   let var_ty = env_get_typ_actual ~env ~sym:typ ~pos in
-                  Env.set_val env var_name (Value.Var {ty = var_ty})
+                  let level = Env.level_get env in
+                  (* Assuming all escape, for now *)
+                  let access = Translate.alloc_local ~level ~escapes:true in
+                  Env.set_val
+                    env
+                    var_name
+                    (Value.Var {ty = var_ty; access})
               )
             in
             (* we only care if an exception is raised *)
@@ -404,6 +430,6 @@ end
 open Semant
 
 let transProg absyn =
-  Escape.find absyn;
+  Escape.find ~prog:absyn;
   let {exp = _; ty = _} = transExp absyn ~env:Env.base in
   ()

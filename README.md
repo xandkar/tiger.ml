@@ -16,10 +16,10 @@ Status
 - [x] ch 3: Parser
 - [x] ch 4: AST
 - [x] ch 5: Semantic Analysis (type checking)
+- [x] ch 6: Activation Records
 #### In-progress
-- [ ] ch 6: Activation Records
-#### TODO (short-term)
 - [ ] ch 7: Translation to Intermediate Code
+#### TODO (short-term)
 - [ ] ch 08: Basic Blocks and Traces
 - [ ] ch 09: Instruction Selection
 - [ ] ch 10: Liveness Analysis
