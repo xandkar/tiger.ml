@@ -19,6 +19,10 @@ type t =
   ; instructions : unit  (* TODO: instructions for view shift *)
   }
 
+let word_size_bits  = 32
+let word_size_bytes = word_size_bits / 8
+let word_size       = word_size_bytes
+
 let name {name; _} =
   name
 

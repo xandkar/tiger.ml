@@ -3,6 +3,8 @@ module type S = sig
 
   type access
 
+  val word_size : int
+
   val make :
     name:Tiger_temp.Label.t -> formals:bool list -> t
 
