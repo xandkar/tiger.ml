@@ -54,7 +54,7 @@ end = struct
     | Type.Array _ ->
         ty
 
-  let return ty     = {exp = (); ty}
+  let return ty     = {exp = Translate.dummy__FIXME; ty}
   let return_unit   = return Type.Unit
   let return_nil    = return Type.Nil
   let return_int    = return Type.Int
@@ -325,7 +325,7 @@ end = struct
     | A.VarDec {name; typ=typ_opt; init; pos=pos_outter; escape=_} ->
         let ty =
           (match (typ_opt, transExp ~env init) with
-          | None, {ty; exp=()} ->
+          | None, {ty; exp=_} ->
               ty
           | Some (sym, pos_inner), expty_init ->
               let ty = env_get_typ_actual ~sym ~env ~pos:pos_inner in

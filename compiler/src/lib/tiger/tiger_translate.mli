@@ -8,10 +8,19 @@ module Level : sig
   (** "newLevel" in Appel's code *)
 end
 
-type exp = unit
+type gen_stm =
+  (Tiger_temp.Label.t * Tiger_temp.Label.t) -> Tiger_tree.stm
+
+type exp
 
 type access
 
 val alloc_local : level:Level.t -> escapes:bool -> access
 
 val formals : level:Level.t -> access list
+
+val unEx : exp -> Tiger_tree.exp
+val unNx : exp -> Tiger_tree.stm
+val unCx : exp -> gen_stm
+
+val dummy__FIXME : exp  (* FIXME: Remove dummy when real is ready *)
